@@ -1,12 +1,12 @@
 import { StateManager } from './StateManager.js';
+import { StorageManager } from '../storage/StorageManager.js';
+import { PresentationGenerator } from './PresentationGenerator.js';
+import { SlideRenderer } from './SlideRenderer.js';
 import { Header } from '../ui/Header.js';
 import { Footer } from '../ui/Footer.js';
 import { Templates } from '../ui/Templates.js';
+import { ExportHelper } from '../utils/ExportHelper.js';
 
-/**
- * Главный класс приложения
- * Синглтон
- */
 class App {
     constructor() {
         if (App.instance) {
@@ -15,35 +15,59 @@ class App {
         App.instance = this;
 
         this.stateManager = new StateManager();
-        this.components = [];
+        this.generator = new PresentationGenerator(this.stateManager);
+        this.currentSlideIndex = 0;
+        this.presentation = null;
+        
+        // Загружаем сохраненные настройки
+        this.loadSettings();
+        
         this.init();
     }
 
-    /**
-     * Инициализация приложения
-     */
     init() {
-        console.log('🚀 Presentation-Foundation v0.1.0');
+        console.log('🚀 Presentation-Foundation v2.0.0');
         
         // Инициализируем компоненты
-        this.components = [
-            new Header('app-header'),
-            new Footer('app-footer'),
-            new Templates('templates-grid', this.stateManager)
-        ];
+        this.components = {
+            header: new Header('app-header'),
+            footer: new Footer('app-footer'),
+            templates: new Templates('templates-grid', this.stateManager)
+        };
 
         // Настраиваем загрузку файлов
         this.setupFileUpload();
+        
+        // Настраиваем управление презентацией
+        this.setupPresentationControls();
+        
+        // Настраиваем экспорт
+        this.setupExport();
 
         // Подписываемся на изменения состояния
         this.stateManager.subscribe((state) => {
             console.log('📊 State updated:', state);
+            this.updateUI(state);
         });
+
+        // Восстанавливаем последнюю презентацию
+        this.restoreLastPresentation();
     }
 
-    /**
-     * Настройка загрузки файлов
-     */
+    loadSettings() {
+        const settings = StorageManager.load(StorageManager.KEYS.SETTINGS, {});
+        this.settings = settings;
+    }
+
+    restoreLastPresentation() {
+        const last = StorageManager.load(StorageManager.KEYS.LAST_PRESENTATION);
+        if (last && last.presentation) {
+            this.presentation = last.presentation;
+            this.currentSlideIndex = last.currentIndex || 0;
+            this.showPresentation();
+        }
+    }
+
     setupFileUpload() {
         const uploadBtn = document.getElementById('upload-btn');
         const fileInput = document.getElementById('file-input');
@@ -66,19 +90,36 @@ class App {
                 }
             });
         }
+
+        // Drag and drop
+        if (uploadArea) {
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = 'var(--primary-color)';
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.style.borderColor = 'var(--border-color)';
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.style.borderColor = 'var(--border-color)';
+                const file = e.dataTransfer.files[0];
+                if (file) {
+                    this.handleFileUpload(file);
+                }
+            });
+        }
     }
 
-    /**
-     * Обработка загруженного файла
-     */
     async handleFileUpload(file) {
         this.stateManager.setState({ isLoading: true, error: null });
 
         try {
             const content = await this.readFile(file);
-            
-            // Парсим контент в зависимости от типа файла
             let data;
+            
             if (file.name.endsWith('.json')) {
                 data = JSON.parse(content);
             } else {
@@ -91,20 +132,49 @@ class App {
                 error: null
             });
 
-            console.log('📄 File uploaded successfully:', data);
-            this.showNotification('Файл успешно загружен!', 'success');
+            // Показываем кнопку генерации
+            const generateBtn = document.getElementById('generate-btn');
+            if (generateBtn) {
+                generateBtn.style.display = 'block';
+            }
+
+            this.showNotification('✅ Файл успешно загружен!', 'success');
+            
+            // Сохраняем в localStorage
+            StorageManager.save('uploaded_data', data);
         } catch (error) {
             this.stateManager.setState({
                 isLoading: false,
                 error: error.message
             });
-            this.showNotification('Ошибка загрузки файла: ' + error.message, 'error');
+            this.showNotification('❌ Ошибка: ' + error.message, 'error');
         }
     }
 
-    /**
-     * Чтение файла
-     */
+    parseTextContent(content) {
+        const lines = content.split('\n').filter(line => line.trim());
+        const title = lines[0] || 'Моя презентация';
+        const slides = lines.slice(1).filter(line => line.trim());
+        
+        return {
+            title: title,
+            slides: slides.map((text, index) => ({
+                id: index + 1,
+                title: this.extractTitle(text, index),
+                content: text
+            }))
+        };
+    }
+
+    extractTitle(text, index) {
+        // Попытка найти заголовок по маркерам
+        const titleMatch = text.match(/^#+\s*(.+)/);
+        if (titleMatch) return titleMatch[1];
+        
+        const words = text.split(' ');
+        return words.length > 10 ? words.slice(0, 8).join(' ') + '...' : `Слайд ${index + 1}`;
+    }
+
     readFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -114,37 +184,202 @@ class App {
         });
     }
 
-    /**
-     * Парсинг текстового контента
-     */
-    parseTextContent(content) {
-        // Простой парсер для демонстрации
-        const lines = content.split('\n').filter(line => line.trim());
-        const title = lines[0] || 'Без названия';
-        const slides = lines.slice(1).filter(line => line.trim());
-        
-        return {
-            title,
-            slides: slides.map((text, index) => ({
-                id: index + 1,
-                title: text.length > 50 ? text.slice(0, 50) + '...' : text,
-                content: text
-            }))
-        };
+    setupPresentationControls() {
+        // Навигация
+        document.getElementById('prev-slide')?.addEventListener('click', () => {
+            this.navigateSlide(-1);
+        });
+
+        document.getElementById('next-slide')?.addEventListener('click', () => {
+            this.navigateSlide(1);
+        });
+
+        // Возврат на главную
+        document.getElementById('back-to-main')?.addEventListener('click', () => {
+            this.hidePresentation();
+        });
+
+        // Клавиатура
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('presentation-mode').style.display === 'none') return;
+            
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                this.navigateSlide(-1);
+                e.preventDefault();
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                this.navigateSlide(1);
+                e.preventDefault();
+            } else if (e.key === 'Escape') {
+                this.hidePresentation();
+            }
+        });
+
+        // Кнопка генерации
+        document.getElementById('generate-btn')?.addEventListener('click', () => {
+            this.generatePresentation();
+        });
     }
 
-    /**
-     * Показать уведомление
-     */
+    generatePresentation() {
+        const state = this.stateManager.getState();
+        
+        if (!state.uploadedData) {
+            this.showNotification('⚠️ Сначала загрузите файл с данными!', 'error');
+            return;
+        }
+
+        if (!state.currentTemplate) {
+            this.showNotification('⚠️ Выберите шаблон!', 'error');
+            return;
+        }
+
+        try {
+            this.presentation = this.generator.generate(
+                state.uploadedData,
+                state.currentTemplate
+            );
+            
+            // Сохраняем
+            StorageManager.save(StorageManager.KEYS.LAST_PRESENTATION, {
+                presentation: this.presentation,
+                currentIndex: 0
+            });
+
+            this.currentSlideIndex = 0;
+            this.showPresentation();
+            this.showNotification('🎉 Презентация создана!', 'success');
+        } catch (error) {
+            this.showNotification('❌ Ошибка генерации: ' + error.message, 'error');
+        }
+    }
+
+    showPresentation() {
+        if (!this.presentation) return;
+
+        document.getElementById('main-screen').style.display = 'none';
+        document.getElementById('presentation-mode').style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        this.renderSlides();
+        this.updateSlide();
+        this.updateProgress();
+    }
+
+    hidePresentation() {
+        document.getElementById('presentation-mode').style.display = 'none';
+        document.getElementById('main-screen').style.display = 'block';
+        document.body.style.overflow = 'auto';
+    }
+
+    renderSlides() {
+        const container = document.getElementById('slides-container');
+        container.innerHTML = '';
+
+        this.presentation.slides.forEach((slide, index) => {
+            const slideElement = SlideRenderer.render(slide, index);
+            container.appendChild(slideElement);
+        });
+
+        document.getElementById('total-slides').textContent = this.presentation.slides.length;
+    }
+
+    navigateSlide(direction) {
+        const total = this.presentation.slides.length;
+        this.currentSlideIndex = Math.max(0, Math.min(total - 1, this.currentSlideIndex + direction));
+        
+        this.updateSlide();
+        this.updateProgress();
+        
+        // Сохраняем позицию
+        StorageManager.save(StorageManager.KEYS.LAST_PRESENTATION, {
+            presentation: this.presentation,
+            currentIndex: this.currentSlideIndex
+        });
+    }
+
+    updateSlide() {
+        const container = document.getElementById('slides-container');
+        const slideWidth = container.parentElement.clientWidth;
+        container.style.transform = `translateX(-${this.currentSlideIndex * slideWidth}px)`;
+
+        document.getElementById('current-slide-num').textContent = this.currentSlideIndex + 1;
+    }
+
+    updateProgress() {
+        const container = document.getElementById('progress-indicators');
+        container.innerHTML = '';
+
+        this.presentation.slides.forEach((_, index) => {
+            const dot = document.createElement('div');
+            dot.className = `progress-dot ${index === this.currentSlideIndex ? 'active' : ''}`;
+            dot.addEventListener('click', () => {
+                this.currentSlideIndex = index;
+                this.updateSlide();
+                this.updateProgress();
+            });
+            container.appendChild(dot);
+        });
+    }
+
+    setupExport() {
+        document.getElementById('export-btn')?.addEventListener('click', () => {
+            this.exportPresentation();
+        });
+    }
+
+    exportPresentation() {
+        if (!this.presentation) {
+            this.showNotification('⚠️ Нет презентации для экспорта!', 'error');
+            return;
+        }
+
+        try {
+            const html = ExportHelper.exportToHTML(this.presentation);
+            const blob = new Blob([html], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${this.presentation.title || 'presentation'}.html`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            this.showNotification('💾 Презентация сохранена!', 'success');
+        } catch (error) {
+            this.showNotification('❌ Ошибка экспорта: ' + error.message, 'error');
+        }
+    }
+
+    updateUI(state) {
+        // Обновляем UI в зависимости от состояния
+        if (state.uploadedData && state.currentTemplate) {
+            const generateBtn = document.getElementById('generate-btn');
+            if (generateBtn) {
+                generateBtn.style.display = 'block';
+                generateBtn.textContent = '🚀 Сгенерировать презентацию';
+            }
+        }
+    }
+
     showNotification(message, type = 'info') {
-        // Временная реализация через alert
-        // В будущем заменим на красивый компонент
-        alert(message);
+        const existing = document.querySelector('.notification');
+        if (existing) {
+            existing.remove();
+        }
+
+        const notification = document.createElement('div');
+        notification.className = `notification ${type}`;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => notification.remove(), 500);
+        }, 3000);
     }
 }
 
-// Создаем экземпляр приложения при загрузке DOM
 document.addEventListener('DOMContentLoaded', () => {
     const app = new App();
-    window.app = app; // Для отладки
+    window.app = app;
 });
