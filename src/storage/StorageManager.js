@@ -6,7 +6,9 @@
     static KEYS = {
         SETTINGS: 'settings',
         LAST_PRESENTATION: 'last_presentation',
-        TEMPLATES: 'templates'
+        TEMPLATES: 'templates',
+        USER_STYLES: 'user_styles',
+        COLLECTIONS: 'collections'
     };
 
     /**

@@ -1,0 +1,40 @@
+:root {
+    /* Основные цвета */
+    --primary-color: #6C63FF;
+    --primary-dark: #5A52D5;
+    --primary-light: #8B83FF;
+    --secondary-color: #FF6B6B;
+    
+    /* Фоны */
+    --bg-primary: #0F0E17;
+    --bg-secondary: #1A1932;
+    --bg-card: #232146;
+    --bg-input: #2D2B55;
+    --bg-hover: #3A3875;
+    
+    /* Текст */
+    --text-primary: #FFFFFE;
+    --text-secondary: #A7A9BE;
+    --text-muted: #6B6D8A;
+    --text-inverse: #0F0E17;
+    
+    /* Границы */
+    --border-color: #2D2B55;
+    --border-light: #3D3B65;
+    
+    /* Эффекты */
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --shadow-hover: 0 12px 48px rgba(108, 99, 255, 0.2);
+    --radius: 16px;
+    --radius-sm: 8px;
+    --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Размеры */
+    --header-height: 64px;
+    --footer-height: 56px;
+    --container-max: 1200px;
+    
+    /* Шрифты */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    --font-mono: 'Courier New', monospace;
+}

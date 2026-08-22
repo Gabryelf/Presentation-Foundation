@@ -1,14 +1,11 @@
 import { Component } from '../core/Component.js';
+import { TemplateParser } from '../utils/TemplateParser.js';
 
 export class Templates extends Component {
     constructor(containerId, stateManager) {
         super(containerId);
         this.stateManager = stateManager;
-        this.templates = [
-            { id: 'modern', name: 'Современный', icon: '💎', desc: 'Минималистичный дизайн' },
-            { id: 'creative', name: 'Креативный', icon: '🎨', desc: 'Яркие цвета и формы' },
-            { id: 'corporate', name: 'Корпоративный', icon: '🏢', desc: 'Строгий деловой стиль' }
-        ];
+        this.templates = TemplateParser.getAvailableTemplates();
         this.render();
     }
 
@@ -23,12 +20,17 @@ export class Templates extends Component {
             </div>
         `).join('');
 
-        // Добавляем обработчики кликов
         this.container.querySelectorAll('.template-card').forEach(card => {
             card.addEventListener('click', () => {
                 const templateId = card.dataset.templateId;
                 const template = this.templates.find(t => t.id === templateId);
                 if (template) {
+                    // Убираем активный класс у всех
+                    this.container.querySelectorAll('.template-card').forEach(c => 
+                        c.classList.remove('active')
+                    );
+                    card.classList.add('active');
+                    
                     this.stateManager.setState({ currentTemplate: template });
                     console.log('🎨 Template selected:', template);
                 }

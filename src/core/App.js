@@ -2,9 +2,11 @@ import { StateManager } from './StateManager.js';
 import { StorageManager } from '../storage/StorageManager.js';
 import { PresentationGenerator } from './PresentationGenerator.js';
 import { SlideRenderer } from './SlideRenderer.js';
+import { TemplateParser } from '../utils/TemplateParser.js';
 import { Header } from '../ui/Header.js';
 import { Footer } from '../ui/Footer.js';
 import { Templates } from '../ui/Templates.js';
+import { StyleEditor } from '../ui/StyleEditor.js';
 import { ExportHelper } from '../utils/ExportHelper.js';
 
 class App {
@@ -18,31 +20,31 @@ class App {
         this.generator = new PresentationGenerator(this.stateManager);
         this.currentSlideIndex = 0;
         this.presentation = null;
+        this.zoomLevel = 1;
+        this.isFullscreen = false;
         
-        // Загружаем сохраненные настройки
         this.loadSettings();
-        
         this.init();
     }
 
     init() {
-        console.log('🚀 Presentation-Foundation v2.0.0');
+        console.log('🚀 Presentation-Foundation v3.0.0');
         
         // Инициализируем компоненты
         this.components = {
             header: new Header('app-header'),
             footer: new Footer('app-footer'),
-            templates: new Templates('templates-grid', this.stateManager)
+            templates: new Templates('templates-grid', this.stateManager),
+            styleEditor: new StyleEditor('style-editor-container', this.stateManager)
         };
 
-        // Настраиваем загрузку файлов
+        // Настраиваем все системы
+        this.setupTabs();
         this.setupFileUpload();
-        
-        // Настраиваем управление презентацией
+        this.setupDataInput();
         this.setupPresentationControls();
-        
-        // Настраиваем экспорт
         this.setupExport();
+        this.setupZoomControls();
 
         // Подписываемся на изменения состояния
         this.stateManager.subscribe((state) => {
@@ -59,12 +61,60 @@ class App {
         this.settings = settings;
     }
 
-    restoreLastPresentation() {
-        const last = StorageManager.load(StorageManager.KEYS.LAST_PRESENTATION);
-        if (last && last.presentation) {
-            this.presentation = last.presentation;
-            this.currentSlideIndex = last.currentIndex || 0;
-            this.showPresentation();
+    setupTabs() {
+        const tabs = document.querySelectorAll('.tab-btn');
+        tabs.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Убираем активные классы
+                tabs.forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                // Добавляем активный класс
+                btn.classList.add('active');
+                const tabId = btn.dataset.tab;
+                document.getElementById(`tab-${tabId}`).classList.add('active');
+            });
+        });
+    }
+
+    setupDataInput() {
+        const applyBtn = document.getElementById('apply-data-btn');
+        const titleInput = document.getElementById('presentation-title');
+        const slidesInput = document.getElementById('slides-input');
+
+        if (applyBtn) {
+            applyBtn.addEventListener('click', () => {
+                const title = titleInput?.value || 'Моя презентация';
+                const slidesText = slidesInput?.value || '';
+                
+                if (!slidesText.trim()) {
+                    this.showNotification('⚠️ Введите хотя бы один слайд!', 'error');
+                    return;
+                }
+
+                const lines = slidesText.split('\n').filter(line => line.trim());
+                const slides = lines.map((text, index) => ({
+                    id: index + 1,
+                    title: this.extractTitle(text, index),
+                    content: text
+                }));
+
+                const data = { title, slides };
+                
+                this.stateManager.setState({
+                    uploadedData: data,
+                    isLoading: false,
+                    error: null
+                });
+
+                const generateBtn = document.getElementById('generate-btn');
+                if (generateBtn) {
+                    generateBtn.style.display = 'block';
+                }
+
+                this.showNotification('✅ Данные применены!', 'success');
+                StorageManager.save('uploaded_data', data);
+            });
         }
     }
 
@@ -132,15 +182,12 @@ class App {
                 error: null
             });
 
-            // Показываем кнопку генерации
             const generateBtn = document.getElementById('generate-btn');
             if (generateBtn) {
                 generateBtn.style.display = 'block';
             }
 
             this.showNotification('✅ Файл успешно загружен!', 'success');
-            
-            // Сохраняем в localStorage
             StorageManager.save('uploaded_data', data);
         } catch (error) {
             this.stateManager.setState({
@@ -167,12 +214,14 @@ class App {
     }
 
     extractTitle(text, index) {
-        // Попытка найти заголовок по маркерам
         const titleMatch = text.match(/^#+\s*(.+)/);
         if (titleMatch) return titleMatch[1];
         
         const words = text.split(' ');
-        return words.length > 10 ? words.slice(0, 8).join(' ') + '...' : `Слайд ${index + 1}`;
+        if (words.length > 10) {
+            return words.slice(0, 8).join(' ') + '...';
+        }
+        return `Слайд ${index + 1}`;
     }
 
     readFile(file) {
@@ -185,7 +234,6 @@ class App {
     }
 
     setupPresentationControls() {
-        // Навигация
         document.getElementById('prev-slide')?.addEventListener('click', () => {
             this.navigateSlide(-1);
         });
@@ -194,14 +242,13 @@ class App {
             this.navigateSlide(1);
         });
 
-        // Возврат на главную
         document.getElementById('back-to-main')?.addEventListener('click', () => {
             this.hidePresentation();
         });
 
-        // Клавиатура
         document.addEventListener('keydown', (e) => {
-            if (document.getElementById('presentation-mode').style.display === 'none') return;
+            const presentationMode = document.getElementById('presentation-mode');
+            if (presentationMode.style.display === 'none') return;
             
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 this.navigateSlide(-1);
@@ -211,20 +258,56 @@ class App {
                 e.preventDefault();
             } else if (e.key === 'Escape') {
                 this.hidePresentation();
+            } else if (e.key === 'f' || e.key === 'F') {
+                this.toggleFullscreen();
+                e.preventDefault();
             }
         });
 
-        // Кнопка генерации
         document.getElementById('generate-btn')?.addEventListener('click', () => {
             this.generatePresentation();
         });
+    }
+
+    setupZoomControls() {
+        const zoomIn = document.getElementById('zoom-in');
+        const zoomOut = document.getElementById('zoom-out');
+
+        zoomIn?.addEventListener('click', () => {
+            this.zoomLevel = Math.min(2, this.zoomLevel + 0.1);
+            this.updateZoom();
+        });
+
+        zoomOut?.addEventListener('click', () => {
+            this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
+            this.updateZoom();
+        });
+    }
+
+    updateZoom() {
+        const wrapper = document.getElementById('slides-wrapper');
+        if (wrapper) {
+            wrapper.style.transform = `scale(${this.zoomLevel})`;
+        }
+        document.getElementById('zoom-level').textContent = `${Math.round(this.zoomLevel * 100)}%`;
+    }
+
+    toggleFullscreen() {
+        const container = document.getElementById('presentation-mode');
+        if (!document.fullscreenElement) {
+            container?.requestFullscreen?.();
+            this.isFullscreen = true;
+        } else {
+            document.exitFullscreen?.();
+            this.isFullscreen = false;
+        }
     }
 
     generatePresentation() {
         const state = this.stateManager.getState();
         
         if (!state.uploadedData) {
-            this.showNotification('⚠️ Сначала загрузите файл с данными!', 'error');
+            this.showNotification('⚠️ Сначала загрузите файл или введите данные!', 'error');
             return;
         }
 
@@ -234,18 +317,24 @@ class App {
         }
 
         try {
-            this.presentation = this.generator.generate(
+            // Парсим данные с учетом шаблона
+            const parsedData = TemplateParser.parse(
                 state.uploadedData,
+                state.currentTemplate.id
+            );
+
+            this.presentation = this.generator.generate(
+                parsedData,
                 state.currentTemplate
             );
             
-            // Сохраняем
             StorageManager.save(StorageManager.KEYS.LAST_PRESENTATION, {
                 presentation: this.presentation,
                 currentIndex: 0
             });
 
             this.currentSlideIndex = 0;
+            this.zoomLevel = 1;
             this.showPresentation();
             this.showNotification('🎉 Презентация создана!', 'success');
         } catch (error) {
@@ -263,6 +352,7 @@ class App {
         this.renderSlides();
         this.updateSlide();
         this.updateProgress();
+        this.updateZoom();
     }
 
     hidePresentation() {
@@ -290,7 +380,6 @@ class App {
         this.updateSlide();
         this.updateProgress();
         
-        // Сохраняем позицию
         StorageManager.save(StorageManager.KEYS.LAST_PRESENTATION, {
             presentation: this.presentation,
             currentIndex: this.currentSlideIndex
@@ -351,7 +440,6 @@ class App {
     }
 
     updateUI(state) {
-        // Обновляем UI в зависимости от состояния
         if (state.uploadedData && state.currentTemplate) {
             const generateBtn = document.getElementById('generate-btn');
             if (generateBtn) {
@@ -363,9 +451,7 @@ class App {
 
     showNotification(message, type = 'info') {
         const existing = document.querySelector('.notification');
-        if (existing) {
-            existing.remove();
-        }
+        if (existing) existing.remove();
 
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
