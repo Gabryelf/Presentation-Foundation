@@ -10,6 +10,11 @@ export class Templates extends Component {
     }
 
     render() {
+        if (!this.container) {
+            console.warn('Templates container not found');
+            return;
+        }
+
         this.container.innerHTML = this.templates.map(template => `
             <div class="template-card" data-template-id="${template.id}">
                 <div class="template-preview">${template.icon}</div>
@@ -20,12 +25,22 @@ export class Templates extends Component {
             </div>
         `).join('');
 
+        // Восстанавливаем выбранный шаблон
+        const state = this.stateManager.getState();
+        if (state.currentTemplate) {
+            const cards = this.container.querySelectorAll('.template-card');
+            cards.forEach(card => {
+                if (card.dataset.templateId === state.currentTemplate.id) {
+                    card.classList.add('active');
+                }
+            });
+        }
+
         this.container.querySelectorAll('.template-card').forEach(card => {
             card.addEventListener('click', () => {
                 const templateId = card.dataset.templateId;
                 const template = this.templates.find(t => t.id === templateId);
                 if (template) {
-                    // Убираем активный класс у всех
                     this.container.querySelectorAll('.template-card').forEach(c => 
                         c.classList.remove('active')
                     );

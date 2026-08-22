@@ -22,21 +22,29 @@ class App {
         this.presentation = null;
         this.zoomLevel = 1;
         this.isFullscreen = false;
+        this.uploadedImages = [];
         
         this.loadSettings();
         this.init();
     }
 
     init() {
-        console.log('🚀 Presentation-Foundation v3.0.0');
+        console.log('🚀 Presentation-Foundation v3.1.0');
         
         // Инициализируем компоненты
         this.components = {
             header: new Header('app-header'),
             footer: new Footer('app-footer'),
-            templates: new Templates('templates-grid', this.stateManager),
-            styleEditor: new StyleEditor('style-editor-container', this.stateManager)
+            templates: new Templates('templates-grid', this.stateManager)
         };
+
+        // Инициализируем StyleEditor после загрузки DOM
+        setTimeout(() => {
+            const styleContainer = document.getElementById('style-editor-container');
+            if (styleContainer) {
+                this.components.styleEditor = new StyleEditor('style-editor-container', this.stateManager);
+            }
+        }, 100);
 
         // Настраиваем все системы
         this.setupTabs();
@@ -45,6 +53,7 @@ class App {
         this.setupPresentationControls();
         this.setupExport();
         this.setupZoomControls();
+        this.setupImageUpload();
 
         // Подписываемся на изменения состояния
         this.stateManager.subscribe((state) => {
@@ -54,6 +63,9 @@ class App {
 
         // Восстанавливаем последнюю презентацию
         this.restoreLastPresentation();
+        
+        // Проверяем наличие данных
+        this.checkSavedData();
     }
 
     loadSettings() {
@@ -61,18 +73,49 @@ class App {
         this.settings = settings;
     }
 
+    checkSavedData() {
+        const savedData = StorageManager.load('uploaded_data');
+        if (savedData) {
+            this.stateManager.setState({
+                uploadedData: savedData,
+                isLoading: false
+            });
+            const generateBtn = document.getElementById('generate-btn');
+            if (generateBtn) {
+                generateBtn.style.display = 'block';
+            }
+        }
+    }
+
+    restoreLastPresentation() {
+        try {
+            const last = StorageManager.load(StorageManager.KEYS.LAST_PRESENTATION);
+            if (last && last.presentation) {
+                this.presentation = last.presentation;
+                this.currentSlideIndex = last.currentIndex || 0;
+                // Показываем презентацию только если есть данные
+                if (this.presentation && this.presentation.slides) {
+                    this.showPresentation();
+                }
+            }
+        } catch (error) {
+            console.warn('Could not restore last presentation:', error);
+        }
+    }
+
     setupTabs() {
         const tabs = document.querySelectorAll('.tab-btn');
         tabs.forEach(btn => {
             btn.addEventListener('click', () => {
-                // Убираем активные классы
                 tabs.forEach(b => b.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 
-                // Добавляем активный класс
                 btn.classList.add('active');
                 const tabId = btn.dataset.tab;
-                document.getElementById(`tab-${tabId}`).classList.add('active');
+                const targetTab = document.getElementById(`tab-${tabId}`);
+                if (targetTab) {
+                    targetTab.classList.add('active');
+                }
             });
         });
     }
@@ -129,15 +172,18 @@ class App {
                 fileInput.click();
             });
 
-            uploadArea.addEventListener('click', () => {
-                fileInput.click();
-            });
+            if (uploadArea) {
+                uploadArea.addEventListener('click', () => {
+                    fileInput.click();
+                });
+            }
 
             fileInput.addEventListener('change', (e) => {
                 const file = e.target.files[0];
                 if (file) {
                     this.handleFileUpload(file);
                 }
+                fileInput.value = '';
             });
         }
 
@@ -145,16 +191,16 @@ class App {
         if (uploadArea) {
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                uploadArea.style.borderColor = 'var(--primary-color)';
+                uploadArea.classList.add('dragover');
             });
 
             uploadArea.addEventListener('dragleave', () => {
-                uploadArea.style.borderColor = 'var(--border-color)';
+                uploadArea.classList.remove('dragover');
             });
 
             uploadArea.addEventListener('drop', (e) => {
                 e.preventDefault();
-                uploadArea.style.borderColor = 'var(--border-color)';
+                uploadArea.classList.remove('dragover');
                 const file = e.dataTransfer.files[0];
                 if (file) {
                     this.handleFileUpload(file);
@@ -170,10 +216,16 @@ class App {
             const content = await this.readFile(file);
             let data;
             
+            // Используем парсер в зависимости от формата
             if (file.name.endsWith('.json')) {
                 data = JSON.parse(content);
             } else {
-                data = this.parseTextContent(content);
+                data = this.parseFileByFormat(content, file.name);
+            }
+
+            // Проверяем структуру данных
+            if (!data.slides || !Array.isArray(data.slides)) {
+                throw new Error('Неверный формат данных: отсутствуют слайды');
             }
 
             this.stateManager.setState({
@@ -185,9 +237,11 @@ class App {
             const generateBtn = document.getElementById('generate-btn');
             if (generateBtn) {
                 generateBtn.style.display = 'block';
+                generateBtn.textContent = '🚀 Сгенерировать презентацию';
             }
 
-            this.showNotification('✅ Файл успешно загружен!', 'success');
+            this.showFileInfo(file);
+            this.showNotification(`✅ Файл "${file.name}" загружен! (${data.slides.length} слайдов)`, 'success');
             StorageManager.save('uploaded_data', data);
         } catch (error) {
             this.stateManager.setState({
@@ -196,6 +250,197 @@ class App {
             });
             this.showNotification('❌ Ошибка: ' + error.message, 'error');
         }
+    }
+
+    parseFileByFormat(content, fileName) {
+        // Определяем формат по имени файла
+        if (fileName.toLowerCase().includes('training') || fileName.toLowerCase().includes('data')) {
+            return this.parseTrainingFormat(content);
+        }
+        
+        if (fileName.endsWith('.md')) {
+            return this.parseMarkdown(content);
+        }
+        
+        // Стандартный формат
+        return this.parseTextContent(content);
+    }
+
+    parseTrainingFormat(content) {
+        const lines = content.split('\n').filter(line => line.trim());
+        
+        let title = 'Тренинговая презентация';
+        let slides = [];
+        let currentSlide = null;
+        let isList = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+            
+            if (!line) continue;
+            
+            // Заголовок презентации
+            if (i === 0 && !line.startsWith('#') && !line.startsWith('-')) {
+                title = line;
+                continue;
+            }
+            
+            // Заголовок слайда
+            if (line.startsWith('## ') || line.startsWith('### ') || line.startsWith('# ')) {
+                if (currentSlide) {
+                    slides.push(currentSlide);
+                }
+                currentSlide = {
+                    title: line.replace(/^#+\s*/, ''),
+                    content: '',
+                    type: 'text'
+                };
+                isList = false;
+                continue;
+            }
+            
+            // Список
+            if (line.startsWith('- ') || line.startsWith('* ')) {
+                if (!currentSlide) {
+                    currentSlide = {
+                        title: `Слайд ${slides.length + 1}`,
+                        content: '',
+                        type: 'list'
+                    };
+                }
+                if (!isList) {
+                    isList = true;
+                    currentSlide.type = 'list';
+                }
+                currentSlide.content += '\n- ' + line.replace(/^[-*]\s*/, '');
+                continue;
+            }
+            
+            // Обычный текст
+            if (currentSlide) {
+                if (currentSlide.content) {
+                    currentSlide.content += '\n' + line;
+                } else {
+                    currentSlide.content = line;
+                }
+            }
+        }
+        
+        if (currentSlide) {
+            slides.push(currentSlide);
+        }
+        
+        // Если слайдов нет, создаем из всех строк
+        if (slides.length === 0) {
+            slides = lines.slice(1).filter(l => l.trim()).map((text, index) => ({
+                id: index + 1,
+                title: `Слайд ${index + 1}`,
+                content: text,
+                type: 'text'
+            }));
+        }
+        
+        return {
+            title: title,
+            slides: slides
+        };
+    }
+
+    parseMarkdown(content) {
+        const lines = content.split('\n');
+        let title = 'Markdown Презентация';
+        let slides = [];
+        let currentSlide = null;
+        let isCodeBlock = false;
+        let codeContent = '';
+        
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            
+            if (line.trim().startsWith('```')) {
+                if (isCodeBlock) {
+                    if (currentSlide) {
+                        currentSlide.content = codeContent.trim();
+                        currentSlide.type = 'code';
+                    }
+                    isCodeBlock = false;
+                    codeContent = '';
+                    continue;
+                } else {
+                    isCodeBlock = true;
+                    continue;
+                }
+            }
+            
+            if (isCodeBlock) {
+                codeContent += line + '\n';
+                continue;
+            }
+            
+            if (line.startsWith('# ')) {
+                title = line.replace('# ', '');
+                continue;
+            }
+            
+            if (line.startsWith('## ')) {
+                if (currentSlide) {
+                    slides.push(currentSlide);
+                }
+                currentSlide = {
+                    title: line.replace('## ', ''),
+                    content: '',
+                    type: 'text'
+                };
+                continue;
+            }
+            
+            if (line.trim() === '---' || line.trim() === '***') {
+                if (currentSlide) {
+                    slides.push(currentSlide);
+                    currentSlide = null;
+                }
+                continue;
+            }
+            
+            if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+                if (currentSlide) {
+                    if (currentSlide.type !== 'list') {
+                        currentSlide.type = 'list';
+                        currentSlide.content = '';
+                    }
+                    currentSlide.content += '\n- ' + line.trim().replace(/^[-*]\s*/, '');
+                }
+                continue;
+            }
+            
+            if (line.trim().match(/^\d+\.\s/)) {
+                if (currentSlide) {
+                    if (currentSlide.type !== 'numbered') {
+                        currentSlide.type = 'numbered';
+                        currentSlide.content = '';
+                    }
+                    currentSlide.content += '\n' + line.trim();
+                }
+                continue;
+            }
+            
+            if (currentSlide && line.trim()) {
+                if (currentSlide.content) {
+                    currentSlide.content += '\n' + line.trim();
+                } else {
+                    currentSlide.content = line.trim();
+                }
+            }
+        }
+        
+        if (currentSlide) {
+            slides.push(currentSlide);
+        }
+        
+        return {
+            title: title,
+            slides: slides.length > 0 ? slides : [{ title: 'Слайд 1', content: content, type: 'text' }]
+        };
     }
 
     parseTextContent(content) {
@@ -233,6 +478,23 @@ class App {
         });
     }
 
+    showFileInfo(file) {
+        const infoContainer = document.querySelector('.upload-file-info');
+        if (infoContainer) {
+            infoContainer.classList.add('active');
+            const nameSpan = infoContainer.querySelector('.file-name');
+            const sizeSpan = infoContainer.querySelector('.file-size');
+            if (nameSpan) nameSpan.textContent = file.name;
+            if (sizeSpan) sizeSpan.textContent = this.formatFileSize(file.size);
+        }
+    }
+
+    formatFileSize(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
     setupPresentationControls() {
         document.getElementById('prev-slide')?.addEventListener('click', () => {
             this.navigateSlide(-1);
@@ -248,7 +510,7 @@ class App {
 
         document.addEventListener('keydown', (e) => {
             const presentationMode = document.getElementById('presentation-mode');
-            if (presentationMode.style.display === 'none') return;
+            if (!presentationMode || presentationMode.style.display === 'none') return;
             
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 this.navigateSlide(-1);
@@ -267,40 +529,6 @@ class App {
         document.getElementById('generate-btn')?.addEventListener('click', () => {
             this.generatePresentation();
         });
-    }
-
-    setupZoomControls() {
-        const zoomIn = document.getElementById('zoom-in');
-        const zoomOut = document.getElementById('zoom-out');
-
-        zoomIn?.addEventListener('click', () => {
-            this.zoomLevel = Math.min(2, this.zoomLevel + 0.1);
-            this.updateZoom();
-        });
-
-        zoomOut?.addEventListener('click', () => {
-            this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
-            this.updateZoom();
-        });
-    }
-
-    updateZoom() {
-        const wrapper = document.getElementById('slides-wrapper');
-        if (wrapper) {
-            wrapper.style.transform = `scale(${this.zoomLevel})`;
-        }
-        document.getElementById('zoom-level').textContent = `${Math.round(this.zoomLevel * 100)}%`;
-    }
-
-    toggleFullscreen() {
-        const container = document.getElementById('presentation-mode');
-        if (!document.fullscreenElement) {
-            container?.requestFullscreen?.();
-            this.isFullscreen = true;
-        } else {
-            document.exitFullscreen?.();
-            this.isFullscreen = false;
-        }
     }
 
     generatePresentation() {
@@ -328,6 +556,15 @@ class App {
                 state.currentTemplate
             );
             
+            // Добавляем загруженные изображения к слайдам
+            if (this.uploadedImages.length > 0) {
+                this.uploadedImages.forEach((img, index) => {
+                    if (this.presentation.slides[index]) {
+                        this.presentation.slides[index].image = img;
+                    }
+                });
+            }
+            
             StorageManager.save(StorageManager.KEYS.LAST_PRESENTATION, {
                 presentation: this.presentation,
                 currentIndex: 0
@@ -338,15 +575,61 @@ class App {
             this.showPresentation();
             this.showNotification('🎉 Презентация создана!', 'success');
         } catch (error) {
+            console.error('Generation error:', error);
             this.showNotification('❌ Ошибка генерации: ' + error.message, 'error');
         }
     }
 
-    showPresentation() {
-        if (!this.presentation) return;
+    setupZoomControls() {
+        const zoomIn = document.getElementById('zoom-in');
+        const zoomOut = document.getElementById('zoom-out');
 
-        document.getElementById('main-screen').style.display = 'none';
-        document.getElementById('presentation-mode').style.display = 'flex';
+        zoomIn?.addEventListener('click', () => {
+            this.zoomLevel = Math.min(2, this.zoomLevel + 0.1);
+            this.updateZoom();
+        });
+
+        zoomOut?.addEventListener('click', () => {
+            this.zoomLevel = Math.max(0.5, this.zoomLevel - 0.1);
+            this.updateZoom();
+        });
+    }
+
+    updateZoom() {
+        const wrapper = document.getElementById('slides-wrapper');
+        if (wrapper) {
+            wrapper.style.transform = `scale(${this.zoomLevel})`;
+        }
+        const zoomLevel = document.getElementById('zoom-level');
+        if (zoomLevel) {
+            zoomLevel.textContent = `${Math.round(this.zoomLevel * 100)}%`;
+        }
+    }
+
+    toggleFullscreen() {
+        const container = document.getElementById('presentation-mode');
+        if (!document.fullscreenElement) {
+            container?.requestFullscreen?.();
+            this.isFullscreen = true;
+        } else {
+            document.exitFullscreen?.();
+            this.isFullscreen = false;
+        }
+    }
+
+    showPresentation() {
+        if (!this.presentation || !this.presentation.slides) {
+            console.warn('No presentation to show');
+            return;
+        }
+
+        const mainScreen = document.getElementById('main-screen');
+        const presentationMode = document.getElementById('presentation-mode');
+        
+        if (mainScreen) mainScreen.style.display = 'none';
+        if (presentationMode) {
+            presentationMode.style.display = 'flex';
+        }
         document.body.style.overflow = 'hidden';
 
         this.renderSlides();
@@ -356,24 +639,37 @@ class App {
     }
 
     hidePresentation() {
-        document.getElementById('presentation-mode').style.display = 'none';
-        document.getElementById('main-screen').style.display = 'block';
+        const mainScreen = document.getElementById('main-screen');
+        const presentationMode = document.getElementById('presentation-mode');
+        
+        if (presentationMode) presentationMode.style.display = 'none';
+        if (mainScreen) mainScreen.style.display = 'block';
         document.body.style.overflow = 'auto';
     }
 
     renderSlides() {
         const container = document.getElementById('slides-container');
+        if (!container) return;
+        
         container.innerHTML = '';
 
+        const state = this.stateManager.getState();
+        const animation = state.styleSettings?.slideAnimation || 'fade';
+
         this.presentation.slides.forEach((slide, index) => {
-            const slideElement = SlideRenderer.render(slide, index);
+            const slideElement = SlideRenderer.render(slide, index, animation);
             container.appendChild(slideElement);
         });
 
-        document.getElementById('total-slides').textContent = this.presentation.slides.length;
+        const totalSlides = document.getElementById('total-slides');
+        if (totalSlides) {
+            totalSlides.textContent = this.presentation.slides.length;
+        }
     }
 
     navigateSlide(direction) {
+        if (!this.presentation || !this.presentation.slides) return;
+        
         const total = this.presentation.slides.length;
         this.currentSlideIndex = Math.max(0, Math.min(total - 1, this.currentSlideIndex + direction));
         
@@ -388,14 +684,21 @@ class App {
 
     updateSlide() {
         const container = document.getElementById('slides-container');
-        const slideWidth = container.parentElement.clientWidth;
+        if (!container) return;
+        
+        const slideWidth = container.parentElement?.clientWidth || container.clientWidth;
         container.style.transform = `translateX(-${this.currentSlideIndex * slideWidth}px)`;
 
-        document.getElementById('current-slide-num').textContent = this.currentSlideIndex + 1;
+        const currentNum = document.getElementById('current-slide-num');
+        if (currentNum) {
+            currentNum.textContent = this.currentSlideIndex + 1;
+        }
     }
 
     updateProgress() {
         const container = document.getElementById('progress-indicators');
+        if (!container || !this.presentation || !this.presentation.slides) return;
+        
         container.innerHTML = '';
 
         this.presentation.slides.forEach((_, index) => {
@@ -435,8 +738,90 @@ class App {
             URL.revokeObjectURL(url);
             this.showNotification('💾 Презентация сохранена!', 'success');
         } catch (error) {
+            console.error('Export error:', error);
             this.showNotification('❌ Ошибка экспорта: ' + error.message, 'error');
         }
+    }
+
+    setupImageUpload() {
+        const uploadBtn = document.getElementById('image-upload-btn');
+        const imageInput = document.getElementById('image-input');
+        const imageGrid = document.getElementById('image-grid');
+
+        if (uploadBtn && imageInput) {
+            uploadBtn.addEventListener('click', () => {
+                imageInput.click();
+            });
+
+            imageInput.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                files.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        this.addImageToGrid(event.target.result, file.name, imageGrid);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                this.showNotification(`✅ Загружено ${files.length} изображений`, 'success');
+                imageInput.value = '';
+            });
+        }
+    }
+
+    addImageToGrid(imageData, fileName, grid) {
+        if (!grid) return;
+        
+        const item = document.createElement('div');
+        item.className = 'image-item';
+        
+        const img = document.createElement('img');
+        img.src = imageData;
+        img.alt = fileName;
+        
+        const overlay = document.createElement('div');
+        overlay.className = 'image-overlay';
+        overlay.textContent = fileName;
+        
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'image-remove';
+        removeBtn.textContent = '×';
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = this.uploadedImages.indexOf(imageData);
+            if (index > -1) {
+                this.uploadedImages.splice(index, 1);
+            }
+            item.remove();
+        });
+        
+        item.appendChild(img);
+        item.appendChild(overlay);
+        item.appendChild(removeBtn);
+        
+        // Сохраняем изображение
+        this.uploadedImages.push(imageData);
+        
+        // Клик по изображению - привязываем к слайду
+        const match = fileName.match(/^(\d+)/);
+        if (match) {
+            const slideIndex = parseInt(match[1]) - 1;
+            item.dataset.slideIndex = slideIndex;
+            item.style.cursor = 'pointer';
+            item.title = `Кликните чтобы привязать к слайду ${slideIndex + 1}`;
+            
+            item.addEventListener('click', () => {
+                if (this.presentation && this.presentation.slides[slideIndex]) {
+                    this.presentation.slides[slideIndex].image = imageData;
+                    this.showNotification(`🖼️ Изображение добавлено к слайду ${slideIndex + 1}`, 'info');
+                    if (document.getElementById('presentation-mode').style.display !== 'none') {
+                        this.renderSlides();
+                        this.updateSlide();
+                    }
+                }
+            });
+        }
+        
+        grid.appendChild(item);
     }
 
     updateUI(state) {
@@ -451,7 +836,9 @@ class App {
 
     showNotification(message, type = 'info') {
         const existing = document.querySelector('.notification');
-        if (existing) existing.remove();
+        if (existing) {
+            existing.remove();
+        }
 
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
@@ -465,6 +852,7 @@ class App {
     }
 }
 
+// Запуск приложения
 document.addEventListener('DOMContentLoaded', () => {
     const app = new App();
     window.app = app;

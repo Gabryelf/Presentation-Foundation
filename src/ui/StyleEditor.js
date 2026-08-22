@@ -11,7 +11,11 @@ export class StyleEditor extends Component {
 
     loadStyles() {
         const saved = StorageManager.load('user_styles');
-        if (saved) return saved;
+        if (saved) {
+            // Применяем сохраненные стили
+            setTimeout(() => this.applyStyles(saved), 50);
+            return saved;
+        }
         
         return {
             primaryColor: '#6C63FF',
@@ -27,16 +31,30 @@ export class StyleEditor extends Component {
 
     saveStyles() {
         StorageManager.save('user_styles', this.styles);
-        this.applyStyles();
+        this.applyStyles(this.styles);
+        this.showNotification('✅ Стили сохранены!', 'success');
     }
 
-    applyStyles() {
+    applyStyles(styles) {
         const root = document.documentElement;
-        root.style.setProperty('--primary-color', this.styles.primaryColor);
-        root.style.setProperty('--bg-primary', this.styles.backgroundColor);
-        root.style.setProperty('--text-primary', this.styles.textColor);
-        root.style.setProperty('--bg-secondary', this.styles.cardBackground);
-        root.style.setProperty('--radius', `${this.styles.cornerRadius}px`);
+        if (styles.primaryColor) {
+            root.style.setProperty('--primary-color', styles.primaryColor);
+        }
+        if (styles.backgroundColor) {
+            root.style.setProperty('--bg-primary', styles.backgroundColor);
+        }
+        if (styles.textColor) {
+            root.style.setProperty('--text-primary', styles.textColor);
+        }
+        if (styles.cardBackground) {
+            root.style.setProperty('--bg-secondary', styles.cardBackground);
+        }
+        if (styles.cornerRadius) {
+            root.style.setProperty('--radius', `${styles.cornerRadius}px`);
+        }
+        
+        // Обновляем состояние
+        this.stateManager.setState({ styleSettings: styles });
     }
 
     render() {
@@ -45,10 +63,24 @@ export class StyleEditor extends Component {
             '#4D96FF', '#FF6BD6', '#00D2FF', '#FF9F43'
         ];
 
+        const bgOptions = ['#0F0E17', '#1A1932', '#2D2B55', '#FFFFFE', '#F5F5F5'];
+
+        if (!this.container) {
+            console.warn('StyleEditor container not found');
+            return;
+        }
+
         this.container.innerHTML = `
             <div class="style-editor">
                 <h3>🎨 Настройка стилей</h3>
                 <p class="style-subtitle">Настройте внешний вид вашей презентации</p>
+                
+                <div class="style-presets">
+                    <button class="preset-btn" data-preset="dark">🌙 Темный</button>
+                    <button class="preset-btn" data-preset="light">☀️ Светлый</button>
+                    <button class="preset-btn" data-preset="colorful">🌈 Яркий</button>
+                    <button class="preset-btn" data-preset="minimal">⬜ Минимал</button>
+                </div>
                 
                 <div class="style-option">
                     <label>Основной цвет</label>
@@ -64,9 +96,9 @@ export class StyleEditor extends Component {
                 <div class="style-option">
                     <label>Цвет фона</label>
                     <div class="color-picker">
-                        ${['#0F0E17', '#1A1932', '#2D2B55', '#FFFFFE', '#F5F5F5'].map(color => `
+                        ${bgOptions.map(color => `
                             <div class="color-swatch ${this.styles.backgroundColor === color ? 'active' : ''}" 
-                                 style="background: ${color}"
+                                 style="background: ${color}; ${color === '#FFFFFE' || color === '#F5F5F5' ? 'border: 2px solid #ddd;' : ''}"
                                  data-color="${color}"
                                  data-setting="backgroundColor"></div>
                         `).join('')}
@@ -74,10 +106,9 @@ export class StyleEditor extends Component {
                 </div>
                 
                 <div class="style-option">
-                    <label>Скругление углов</label>
+                    <label>Скругление углов: <span class="range-value">${this.styles.cornerRadius}px</span></label>
                     <input type="range" min="4" max="32" value="${this.styles.cornerRadius}" 
                            class="style-range" data-setting="cornerRadius">
-                    <span class="range-value">${this.styles.cornerRadius}px</span>
                 </div>
                 
                 <div class="style-option">
@@ -86,12 +117,17 @@ export class StyleEditor extends Component {
                         <option value="fade" ${this.styles.slideAnimation === 'fade' ? 'selected' : ''}>Плавное затухание</option>
                         <option value="slide" ${this.styles.slideAnimation === 'slide' ? 'selected' : ''}>Скольжение</option>
                         <option value="scale" ${this.styles.slideAnimation === 'scale' ? 'selected' : ''}>Масштабирование</option>
+                        <option value="bounce" ${this.styles.slideAnimation === 'bounce' ? 'selected' : ''}>Подпрыгивание</option>
+                        <option value="flip" ${this.styles.slideAnimation === 'flip' ? 'selected' : ''}>Переворот</option>
+                        <option value="glow" ${this.styles.slideAnimation === 'glow' ? 'selected' : ''}>Свечение</option>
                         <option value="none" ${this.styles.slideAnimation === 'none' ? 'selected' : ''}>Без анимации</option>
                     </select>
                 </div>
                 
-                <button class="btn-primary" id="save-styles-btn">💾 Сохранить стиль</button>
-                <button class="btn-secondary" id="reset-styles-btn">↺ Сбросить</button>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px;">
+                    <button class="btn-primary" id="save-styles-btn">💾 Сохранить стиль</button>
+                    <button class="btn-secondary" id="reset-styles-btn">↺ Сбросить</button>
+                </div>
             </div>
         `;
 
@@ -105,14 +141,12 @@ export class StyleEditor extends Component {
                 const color = swatch.dataset.color;
                 const setting = swatch.dataset.setting || 'primaryColor';
                 
-                // Обновляем активный класс
                 const parent = swatch.parentElement;
                 parent.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
                 swatch.classList.add('active');
                 
-                // Обновляем стиль
                 this.styles[setting] = color;
-                this.applyStyles();
+                this.applyStyles(this.styles);
             });
         });
 
@@ -128,7 +162,7 @@ export class StyleEditor extends Component {
                     valueDisplay.textContent = `${value}px`;
                 }
                 
-                this.applyStyles();
+                this.applyStyles(this.styles);
             });
         });
 
@@ -137,7 +171,15 @@ export class StyleEditor extends Component {
             select.addEventListener('change', () => {
                 const setting = select.dataset.setting;
                 this.styles[setting] = select.value;
-                this.applyStyles();
+                this.applyStyles(this.styles);
+            });
+        });
+
+        // Пресеты
+        this.container.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const preset = btn.dataset.preset;
+                this.applyPreset(preset);
             });
         });
 
@@ -146,7 +188,6 @@ export class StyleEditor extends Component {
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
                 this.saveStyles();
-                this.showNotification('✅ Стили сохранены!', 'success');
             });
         }
 
@@ -164,10 +205,55 @@ export class StyleEditor extends Component {
                     cornerRadius: '16',
                     shadowIntensity: 'medium'
                 };
-                this.saveStyles();
+                this.applyStyles(this.styles);
                 this.render();
-                this.showNotification('↺ Стили сброшены', 'info');
+                this.showNotification('↺ Стили сброшены к стандартным', 'info');
             });
+        }
+    }
+
+    applyPreset(preset) {
+        const presets = {
+            dark: {
+                primaryColor: '#6C63FF',
+                backgroundColor: '#0F0E17',
+                textColor: '#FFFFFE',
+                cardBackground: '#1A1932',
+                cornerRadius: '16',
+                slideAnimation: 'fade'
+            },
+            light: {
+                primaryColor: '#4D96FF',
+                backgroundColor: '#F5F5F5',
+                textColor: '#0F0E17',
+                cardBackground: '#FFFFFF',
+                cornerRadius: '12',
+                slideAnimation: 'slide'
+            },
+            colorful: {
+                primaryColor: '#FF6B6B',
+                backgroundColor: '#1A1932',
+                textColor: '#FFFFFE',
+                cardBackground: '#2D2B55',
+                cornerRadius: '20',
+                slideAnimation: 'bounce'
+            },
+            minimal: {
+                primaryColor: '#333333',
+                backgroundColor: '#FFFFFF',
+                textColor: '#0F0E17',
+                cardBackground: '#F8F8F8',
+                cornerRadius: '4',
+                slideAnimation: 'none'
+            }
+        };
+
+        const selected = presets[preset];
+        if (selected) {
+            this.styles = { ...this.styles, ...selected };
+            this.applyStyles(this.styles);
+            this.render();
+            this.showNotification(`🎨 Применен пресет "${preset}"`, 'success');
         }
     }
 

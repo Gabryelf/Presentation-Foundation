@@ -6,6 +6,10 @@
      * Парсинг данных в зависимости от шаблона
      */
     static parse(data, templateId) {
+        // Убедимся, что данные имеют правильную структуру
+        const slides = data.slides || [];
+        const title = data.title || 'Презентация';
+        
         const parsers = {
             'modern': this.parseModern,
             'creative': this.parseCreative,
@@ -15,12 +19,9 @@
         };
 
         const parser = parsers[templateId] || this.parseDefault;
-        return parser(data);
+        return parser({ title, slides });
     }
 
-    /**
-     * Современный шаблон (минималистичный)
-     */
     static parseModern(data) {
         return {
             title: data.title || 'Презентация',
@@ -33,9 +34,6 @@
         };
     }
 
-    /**
-     * Креативный шаблон (яркий, с эмодзи)
-     */
     static parseCreative(data) {
         const emojis = ['🚀', '💡', '🎯', '🌟', '💎', '🎨', '🔥', '✨'];
         
@@ -51,9 +49,6 @@
         };
     }
 
-    /**
-     * Корпоративный шаблон (строгий, деловой)
-     */
     static parseCorporate(data) {
         return {
             title: `📊 ${data.title || 'Корпоративная презентация'}`,
@@ -66,9 +61,6 @@
         };
     }
 
-    /**
-     * Минималистичный шаблон
-     */
     static parseMinimal(data) {
         return {
             title: data.title || 'Minimal',
@@ -81,9 +73,6 @@
         };
     }
 
-    /**
-     * Детальный шаблон (с подзаголовками)
-     */
     static parseDetailed(data) {
         return {
             title: `📋 ${data.title || 'Детальная презентация'}`,
@@ -101,9 +90,6 @@
         };
     }
 
-    /**
-     * Шаблон по умолчанию
-     */
     static parseDefault(data) {
         return {
             title: data.title || 'Презентация',
@@ -116,9 +102,6 @@
         };
     }
 
-    /**
-     * Определение типа слайда
-     */
     static detectType(content) {
         if (!content) return 'text';
         if (content.includes('\n- ')) return 'list';
@@ -128,9 +111,6 @@
         return 'text';
     }
 
-    /**
-     * Получение списка доступных шаблонов
-     */
     static getAvailableTemplates() {
         return [
             { id: 'modern', name: 'Современный', icon: '💎', desc: 'Минималистичный дизайн' },
