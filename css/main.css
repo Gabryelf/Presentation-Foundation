@@ -1,7 +1,6 @@
 /* ========================================
    MAIN.CSS — Точка входа для всех стилей
    ======================================== */
-
 /* 1. Базовые настройки */
 @import 'base/reset.css';
 @import 'base/variables.css';
@@ -10,15 +9,15 @@
 /* 2. Компоненты UI */
 @import 'components/header.css';
 @import 'components/footer.css';
-@import 'components/upload.css';
+@import 'components/panel.css';
 @import 'components/templates.css';
-@import 'components/presentation.css';
+@import 'components/upload.css';
 @import 'components/editor.css';
-@import 'components/tabs.css';
+@import 'components/images.css';
+@import 'components/presentation.css';
+@import 'components/controls.css';
+@import 'components/animations.css';
+@import 'components/notifications.css';
 
-/* 3. Макеты */
-@import 'layouts/main.css';
-@import 'layouts/presentation.css';
-
-/* 4. Темы */
-@import 'themes/dark.css';
+/* 3. Адаптивность */
+@import 'layouts/responsive.css';

@@ -1,177 +1,65 @@
-/* ===== Анимации ===== */
-
-/* Fade - Плавное затухание */
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeOut {
-    from {
-        opacity: 1;
-        transform: translateY(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateY(-20px);
-    }
-}
-
 .slide-animation-fade .slide-wrapper {
     animation: fadeIn 0.6s ease-out;
-}
-
-/* Slide - Скольжение */
-@keyframes slideIn {
-    from {
-        opacity: 0;
-        transform: translateX(50px);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
-}
-
-@keyframes slideOut {
-    from {
-        opacity: 1;
-        transform: translateX(0);
-    }
-    to {
-        opacity: 0;
-        transform: translateX(-50px);
-    }
 }
 
 .slide-animation-slide .slide-wrapper {
     animation: slideIn 0.6s ease-out;
 }
 
-/* Scale - Масштабирование */
-@keyframes scaleIn {
-    from {
-        opacity: 0;
-        transform: scale(0.8);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
 .slide-animation-scale .slide-wrapper {
     animation: scaleIn 0.6s ease-out;
-}
-
-/* Bounce - Подпрыгивание */
-@keyframes bounceIn {
-    0% {
-        opacity: 0;
-        transform: scale(0.3);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.05);
-    }
-    70% {
-        transform: scale(0.9);
-    }
-    100% {
-        transform: scale(1);
-    }
 }
 
 .slide-animation-bounce .slide-wrapper {
     animation: bounceIn 0.8s ease-out;
 }
 
-/* Flip - Переворот */
-@keyframes flipIn {
-    from {
-        opacity: 0;
-        transform: perspective(400px) rotateY(90deg);
-    }
-    to {
-        opacity: 1;
-        transform: perspective(400px) rotateY(0);
-    }
-}
-
 .slide-animation-flip .slide-wrapper {
     animation: flipIn 0.7s ease-out;
-}
-
-/* Glow - Свечение */
-@keyframes glowIn {
-    from {
-        opacity: 0;
-        filter: blur(10px);
-        transform: scale(0.9);
-    }
-    to {
-        opacity: 1;
-        filter: blur(0);
-        transform: scale(1);
-    }
 }
 
 .slide-animation-glow .slide-wrapper {
     animation: glowIn 0.6s ease-out;
 }
 
-/* Анимация для элементов внутри слайда */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.85); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes bounceIn {
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { opacity: 1; transform: scale(1.05); }
+    70% { transform: scale(0.92); }
+    100% { transform: scale(1); }
+}
+
+@keyframes flipIn {
+    from { opacity: 0; transform: perspective(400px) rotateY(90deg); }
+    to { opacity: 1; transform: perspective(400px) rotateY(0); }
+}
+
+@keyframes glowIn {
+    from { opacity: 0; filter: blur(8px); transform: scale(0.92); }
+    to { opacity: 1; filter: blur(0); transform: scale(1); }
+}
+
 .slide-content > * {
     opacity: 0;
-    animation: fadeIn 0.5s ease-out forwards;
+    animation: fadeIn 0.4s ease-out forwards;
 }
 
-.slide-content > *:nth-child(1) { animation-delay: 0.1s; }
-.slide-content > *:nth-child(2) { animation-delay: 0.2s; }
-.slide-content > *:nth-child(3) { animation-delay: 0.3s; }
-.slide-content > *:nth-child(4) { animation-delay: 0.4s; }
-.slide-content > *:nth-child(5) { animation-delay: 0.5s; }
-
-/* Анимация для списков */
-.slide-content ul li {
-    opacity: 0;
-    animation: slideIn 0.4s ease-out forwards;
-}
-
-.slide-content ul li:nth-child(1) { animation-delay: 0.1s; }
-.slide-content ul li:nth-child(2) { animation-delay: 0.2s; }
-.slide-content ul li:nth-child(3) { animation-delay: 0.3s; }
-.slide-content ul li:nth-child(4) { animation-delay: 0.4s; }
-.slide-content ul li:nth-child(5) { animation-delay: 0.5s; }
-
-/* Пульсация для активных элементов */
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.05);
-    }
-}
-
-.pulse {
-    animation: pulse 2s ease-in-out infinite;
-}
-
-/* Вращение для загрузки */
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.spinner {
-    display: inline-block;
-    animation: spin 1s linear infinite;
-}
+.slide-content > *:nth-child(1) { animation-delay: 0.08s; }
+.slide-content > *:nth-child(2) { animation-delay: 0.16s; }
+.slide-content > *:nth-child(3) { animation-delay: 0.24s; }
+.slide-content > *:nth-child(4) { animation-delay: 0.32s; }

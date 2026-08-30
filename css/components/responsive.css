@@ -1,0 +1,72 @@
+@media (max-width: 1024px) {
+    .control-panel {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .control-panel {
+        grid-template-columns: 1fr;
+        max-height: none;
+    }
+    
+    .main-screen {
+        padding: 10px 0 16px;
+    }
+    
+    .welcome-section h1 {
+        font-size: 24px;
+    }
+    
+    .slide-content {
+        padding: 16px 20px;
+    }
+    
+    .slide-content h2 {
+        font-size: 20px;
+    }
+    
+    .presentation-controls {
+        bottom: 12px;
+        padding: 4px 10px;
+        gap: 4px;
+    }
+    
+    .ctrl-btn {
+        font-size: 12px;
+        min-width: 24px;
+        height: 24px;
+        padding: 2px 6px;
+    }
+    
+    .slide-counter {
+        font-size: 10px;
+        min-width: 40px;
+    }
+    
+    .progress-indicators {
+        bottom: 56px;
+        padding: 4px 8px;
+        gap: 4px;
+    }
+    
+    .progress-dot {
+        width: 5px;
+        height: 5px;
+    }
+}
+
+@media (max-width: 480px) {
+    .slide-content {
+        padding: 12px 16px;
+    }
+    
+    .slide-content h2 {
+        font-size: 16px;
+    }
+    
+    .slide-content p,
+    .slide-content ul li {
+        font-size: 13px;
+    }
+}

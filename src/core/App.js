@@ -15,7 +15,7 @@ class App {
             return App.instance;
         }
         App.instance = this;
-
+        
         this.stateManager = new StateManager();
         this.generator = new PresentationGenerator(this.stateManager);
         this.currentSlideIndex = 0;
@@ -23,6 +23,7 @@ class App {
         this.zoomLevel = 1;
         this.isFullscreen = false;
         this.uploadedImages = [];
+        this.fileData = null;
         
         this.loadSettings();
         this.init();
@@ -31,14 +32,12 @@ class App {
     init() {
         console.log('🚀 Presentation-Foundation v3.1.0');
         
-        // Инициализируем компоненты
         this.components = {
             header: new Header('app-header'),
             footer: new Footer('app-footer'),
             templates: new Templates('templates-grid', this.stateManager)
         };
 
-        // Инициализируем StyleEditor после загрузки DOM
         setTimeout(() => {
             const styleContainer = document.getElementById('style-editor-container');
             if (styleContainer) {
@@ -46,7 +45,6 @@ class App {
             }
         }, 100);
 
-        // Настраиваем все системы
         this.setupTabs();
         this.setupFileUpload();
         this.setupDataInput();
@@ -54,17 +52,14 @@ class App {
         this.setupExport();
         this.setupZoomControls();
         this.setupImageUpload();
+        this.setupFullscreen();
 
-        // Подписываемся на изменения состояния
         this.stateManager.subscribe((state) => {
             console.log('📊 State updated:', state);
             this.updateUI(state);
         });
 
-        // Восстанавливаем последнюю презентацию
         this.restoreLastPresentation();
-        
-        // Проверяем наличие данных
         this.checkSavedData();
     }
 
@@ -75,14 +70,40 @@ class App {
 
     checkSavedData() {
         const savedData = StorageManager.load('uploaded_data');
-        if (savedData) {
+        if (savedData && savedData.slides) {
+            this.fileData = savedData;
             this.stateManager.setState({
                 uploadedData: savedData,
                 isLoading: false
             });
             const generateBtn = document.getElementById('generate-btn');
             if (generateBtn) {
-                generateBtn.style.display = 'block';
+                generateBtn.classList.add('visible');
+            }
+            // Показываем информацию о файле
+            this.showFileInfoFromData(savedData);
+        }
+    }
+
+    showFileInfoFromData(data) {
+        const infoContainer = document.getElementById('upload-file-info');
+        if (infoContainer && data) {
+            infoContainer.classList.add('active');
+            const nameSpan = infoContainer.querySelector('.file-name');
+            const sizeSpan = infoContainer.querySelector('.file-size');
+            if (nameSpan) nameSpan.textContent = '📄 ' + (data.filename || 'Данные');
+            if (sizeSpan) sizeSpan.textContent = `${data.slides ? data.slides.length : 0} слайдов`;
+            
+            const removeBtn = infoContainer.querySelector('.file-remove');
+            if (removeBtn) {
+                removeBtn.onclick = () => {
+                    infoContainer.classList.remove('active');
+                    this.fileData = null;
+                    this.stateManager.setState({ uploadedData: null });
+                    const generateBtn = document.getElementById('generate-btn');
+                    if (generateBtn) generateBtn.classList.remove('visible');
+                    StorageManager.remove('uploaded_data');
+                };
             }
         }
     }
@@ -90,13 +111,10 @@ class App {
     restoreLastPresentation() {
         try {
             const last = StorageManager.load(StorageManager.KEYS.LAST_PRESENTATION);
-            if (last && last.presentation) {
+            if (last && last.presentation && last.presentation.slides) {
                 this.presentation = last.presentation;
                 this.currentSlideIndex = last.currentIndex || 0;
-                // Показываем презентацию только если есть данные
-                if (this.presentation && this.presentation.slides) {
-                    this.showPresentation();
-                }
+                this.showPresentation();
             }
         } catch (error) {
             console.warn('Could not restore last presentation:', error);
@@ -104,17 +122,16 @@ class App {
     }
 
     setupTabs() {
-        const tabs = document.querySelectorAll('.tab-btn');
+        const tabs = document.querySelectorAll('.content-tab');
         tabs.forEach(btn => {
             btn.addEventListener('click', () => {
                 tabs.forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                
+                document.querySelectorAll('.content-panel').forEach(c => c.classList.remove('active'));
                 btn.classList.add('active');
                 const tabId = btn.dataset.tab;
-                const targetTab = document.getElementById(`tab-${tabId}`);
-                if (targetTab) {
-                    targetTab.classList.add('active');
+                const targetPanel = document.getElementById(`panel-${tabId}`);
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
                 }
             });
         });
@@ -142,8 +159,8 @@ class App {
                     content: text
                 }));
 
-                const data = { title, slides };
-                
+                const data = { title, slides, filename: 'Ручной ввод' };
+                this.fileData = data;
                 this.stateManager.setState({
                     uploadedData: data,
                     isLoading: false,
@@ -152,9 +169,10 @@ class App {
 
                 const generateBtn = document.getElementById('generate-btn');
                 if (generateBtn) {
-                    generateBtn.style.display = 'block';
+                    generateBtn.classList.add('visible');
                 }
 
+                this.showFileInfoFromData(data);
                 this.showNotification('✅ Данные применены!', 'success');
                 StorageManager.save('uploaded_data', data);
             });
@@ -162,33 +180,14 @@ class App {
     }
 
     setupFileUpload() {
-        const uploadBtn = document.getElementById('upload-btn');
-        const fileInput = document.getElementById('file-input');
+        const uploadBtn = document.getElementById('file-input');
         const uploadArea = document.getElementById('upload-area');
 
-        if (uploadBtn && fileInput) {
-            uploadBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                fileInput.click();
-            });
-
-            if (uploadArea) {
-                uploadArea.addEventListener('click', () => {
-                    fileInput.click();
-                });
-            }
-
-            fileInput.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file) {
-                    this.handleFileUpload(file);
-                }
-                fileInput.value = '';
-            });
-        }
-
-        // Drag and drop
         if (uploadArea) {
+            uploadArea.addEventListener('click', () => {
+                uploadBtn?.click();
+            });
+
             uploadArea.addEventListener('dragover', (e) => {
                 e.preventDefault();
                 uploadArea.classList.add('dragover');
@@ -207,27 +206,62 @@ class App {
                 }
             });
         }
+
+        if (uploadBtn) {
+            uploadBtn.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    this.handleFileUpload(file);
+                }
+                uploadBtn.value = '';
+            });
+        }
     }
 
     async handleFileUpload(file) {
         this.stateManager.setState({ isLoading: true, error: null });
-
+        
         try {
             const content = await this.readFile(file);
             let data;
-            
-            // Используем парсер в зависимости от формата
+
             if (file.name.endsWith('.json')) {
                 data = JSON.parse(content);
+                data.filename = file.name;
             } else {
                 data = this.parseFileByFormat(content, file.name);
+                data.filename = file.name;
             }
 
-            // Проверяем структуру данных
-            if (!data.slides || !Array.isArray(data.slides)) {
-                throw new Error('Неверный формат данных: отсутствуют слайды');
+            // Убеждаемся, что данные имеют правильную структуру
+            if (!data.slides || !Array.isArray(data.slides) || data.slides.length === 0) {
+                // Если слайдов нет, создаем из контента
+                const lines = content.split('\n').filter(l => l.trim());
+                data.slides = lines.map((text, index) => ({
+                    id: index + 1,
+                    title: this.extractTitle(text, index),
+                    content: text
+                }));
+                data.title = data.title || lines[0] || 'Презентация';
             }
 
+            // Нормализуем слайды
+            data.slides = data.slides.map((slide, index) => {
+                if (typeof slide === 'string') {
+                    return {
+                        id: index + 1,
+                        title: this.extractTitle(slide, index),
+                        content: slide
+                    };
+                }
+                return {
+                    id: index + 1,
+                    title: slide.title || `Слайд ${index + 1}`,
+                    content: slide.content || slide.text || ''
+                };
+            });
+
+            this.fileData = data;
             this.stateManager.setState({
                 uploadedData: data,
                 isLoading: false,
@@ -236,14 +270,14 @@ class App {
 
             const generateBtn = document.getElementById('generate-btn');
             if (generateBtn) {
-                generateBtn.style.display = 'block';
-                generateBtn.textContent = '🚀 Сгенерировать презентацию';
+                generateBtn.classList.add('visible');
             }
 
-            this.showFileInfo(file);
+            this.showFileInfoFromData(data);
             this.showNotification(`✅ Файл "${file.name}" загружен! (${data.slides.length} слайдов)`, 'success');
             StorageManager.save('uploaded_data', data);
         } catch (error) {
+            console.error('File upload error:', error);
             this.stateManager.setState({
                 isLoading: false,
                 error: error.message
@@ -253,39 +287,32 @@ class App {
     }
 
     parseFileByFormat(content, fileName) {
-        // Определяем формат по имени файла
+        // Пробуем распарсить в зависимости от формата
         if (fileName.toLowerCase().includes('training') || fileName.toLowerCase().includes('data')) {
             return this.parseTrainingFormat(content);
         }
-        
         if (fileName.endsWith('.md')) {
             return this.parseMarkdown(content);
         }
-        
-        // Стандартный формат
         return this.parseTextContent(content);
     }
 
     parseTrainingFormat(content) {
         const lines = content.split('\n').filter(line => line.trim());
-        
         let title = 'Тренинговая презентация';
         let slides = [];
         let currentSlide = null;
         let isList = false;
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i].trim();
-            
             if (!line) continue;
-            
-            // Заголовок презентации
+
             if (i === 0 && !line.startsWith('#') && !line.startsWith('-')) {
                 title = line;
                 continue;
             }
-            
-            // Заголовок слайда
+
             if (line.startsWith('## ') || line.startsWith('### ') || line.startsWith('# ')) {
                 if (currentSlide) {
                     slides.push(currentSlide);
@@ -298,8 +325,7 @@ class App {
                 isList = false;
                 continue;
             }
-            
-            // Список
+
             if (line.startsWith('- ') || line.startsWith('* ')) {
                 if (!currentSlide) {
                     currentSlide = {
@@ -315,8 +341,7 @@ class App {
                 currentSlide.content += '\n- ' + line.replace(/^[-*]\s*/, '');
                 continue;
             }
-            
-            // Обычный текст
+
             if (currentSlide) {
                 if (currentSlide.content) {
                     currentSlide.content += '\n' + line;
@@ -325,12 +350,11 @@ class App {
                 }
             }
         }
-        
+
         if (currentSlide) {
             slides.push(currentSlide);
         }
-        
-        // Если слайдов нет, создаем из всех строк
+
         if (slides.length === 0) {
             slides = lines.slice(1).filter(l => l.trim()).map((text, index) => ({
                 id: index + 1,
@@ -339,11 +363,8 @@ class App {
                 type: 'text'
             }));
         }
-        
-        return {
-            title: title,
-            slides: slides
-        };
+
+        return { title, slides };
     }
 
     parseMarkdown(content) {
@@ -353,7 +374,7 @@ class App {
         let currentSlide = null;
         let isCodeBlock = false;
         let codeContent = '';
-        
+
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             
@@ -371,17 +392,17 @@ class App {
                     continue;
                 }
             }
-            
+
             if (isCodeBlock) {
                 codeContent += line + '\n';
                 continue;
             }
-            
+
             if (line.startsWith('# ')) {
                 title = line.replace('# ', '');
                 continue;
             }
-            
+
             if (line.startsWith('## ')) {
                 if (currentSlide) {
                     slides.push(currentSlide);
@@ -393,7 +414,7 @@ class App {
                 };
                 continue;
             }
-            
+
             if (line.trim() === '---' || line.trim() === '***') {
                 if (currentSlide) {
                     slides.push(currentSlide);
@@ -401,7 +422,7 @@ class App {
                 }
                 continue;
             }
-            
+
             if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
                 if (currentSlide) {
                     if (currentSlide.type !== 'list') {
@@ -412,7 +433,7 @@ class App {
                 }
                 continue;
             }
-            
+
             if (line.trim().match(/^\d+\.\s/)) {
                 if (currentSlide) {
                     if (currentSlide.type !== 'numbered') {
@@ -423,7 +444,7 @@ class App {
                 }
                 continue;
             }
-            
+
             if (currentSlide && line.trim()) {
                 if (currentSlide.content) {
                     currentSlide.content += '\n' + line.trim();
@@ -432,22 +453,26 @@ class App {
                 }
             }
         }
-        
+
         if (currentSlide) {
             slides.push(currentSlide);
         }
-        
-        return {
-            title: title,
-            slides: slides.length > 0 ? slides : [{ title: 'Слайд 1', content: content, type: 'text' }]
-        };
+
+        if (slides.length === 0) {
+            slides = [{ 
+                title: 'Слайд 1', 
+                content: content.replace(/^# .*\n/, ''), 
+                type: 'text' 
+            }];
+        }
+
+        return { title, slides };
     }
 
     parseTextContent(content) {
         const lines = content.split('\n').filter(line => line.trim());
         const title = lines[0] || 'Моя презентация';
         const slides = lines.slice(1).filter(line => line.trim());
-        
         return {
             title: title,
             slides: slides.map((text, index) => ({
@@ -459,14 +484,14 @@ class App {
     }
 
     extractTitle(text, index) {
+        if (!text) return `Слайд ${index + 1}`;
         const titleMatch = text.match(/^#+\s*(.+)/);
         if (titleMatch) return titleMatch[1];
-        
         const words = text.split(' ');
         if (words.length > 10) {
             return words.slice(0, 8).join(' ') + '...';
         }
-        return `Слайд ${index + 1}`;
+        return text.length > 50 ? text.substring(0, 50) + '...' : text || `Слайд ${index + 1}`;
     }
 
     readFile(file) {
@@ -478,14 +503,26 @@ class App {
         });
     }
 
-    showFileInfo(file) {
-        const infoContainer = document.querySelector('.upload-file-info');
-        if (infoContainer) {
+    showFileInfoFromData(data) {
+        const infoContainer = document.getElementById('upload-file-info');
+        if (infoContainer && data) {
             infoContainer.classList.add('active');
             const nameSpan = infoContainer.querySelector('.file-name');
             const sizeSpan = infoContainer.querySelector('.file-size');
-            if (nameSpan) nameSpan.textContent = file.name;
-            if (sizeSpan) sizeSpan.textContent = this.formatFileSize(file.size);
+            if (nameSpan) nameSpan.textContent = '📄 ' + (data.filename || 'Данные');
+            if (sizeSpan) sizeSpan.textContent = `${data.slides ? data.slides.length : 0} слайдов`;
+            
+            const removeBtn = infoContainer.querySelector('.file-remove');
+            if (removeBtn) {
+                removeBtn.onclick = () => {
+                    infoContainer.classList.remove('active');
+                    this.fileData = null;
+                    this.stateManager.setState({ uploadedData: null });
+                    const generateBtn = document.getElementById('generate-btn');
+                    if (generateBtn) generateBtn.classList.remove('visible');
+                    StorageManager.remove('uploaded_data');
+                };
+            }
         }
     }
 
@@ -499,11 +536,9 @@ class App {
         document.getElementById('prev-slide')?.addEventListener('click', () => {
             this.navigateSlide(-1);
         });
-
         document.getElementById('next-slide')?.addEventListener('click', () => {
             this.navigateSlide(1);
         });
-
         document.getElementById('back-to-main')?.addEventListener('click', () => {
             this.hidePresentation();
         });
@@ -511,7 +546,7 @@ class App {
         document.addEventListener('keydown', (e) => {
             const presentationMode = document.getElementById('presentation-mode');
             if (!presentationMode || presentationMode.style.display === 'none') return;
-            
+
             if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
                 this.navigateSlide(-1);
                 e.preventDefault();
@@ -531,10 +566,16 @@ class App {
         });
     }
 
+    setupFullscreen() {
+        document.getElementById('fullscreen-btn')?.addEventListener('click', () => {
+            this.toggleFullscreen();
+        });
+    }
+
     generatePresentation() {
         const state = this.stateManager.getState();
         
-        if (!state.uploadedData) {
+        if (!state.uploadedData || !state.uploadedData.slides) {
             this.showNotification('⚠️ Сначала загрузите файл или введите данные!', 'error');
             return;
         }
@@ -545,18 +586,23 @@ class App {
         }
 
         try {
-            // Парсим данные с учетом шаблона
+            // Передаем данные в парсер
             const parsedData = TemplateParser.parse(
                 state.uploadedData,
                 state.currentTemplate.id
             );
 
+            // Убеждаемся, что данные валидны
+            if (!parsedData.slides || parsedData.slides.length === 0) {
+                throw new Error('Нет слайдов для генерации');
+            }
+
             this.presentation = this.generator.generate(
                 parsedData,
                 state.currentTemplate
             );
-            
-            // Добавляем загруженные изображения к слайдам
+
+            // Добавляем изображения к слайдам
             if (this.uploadedImages.length > 0) {
                 this.uploadedImages.forEach((img, index) => {
                     if (this.presentation.slides[index]) {
@@ -564,7 +610,17 @@ class App {
                     }
                 });
             }
-            
+
+            // Применяем стили
+            if (state.styleSettings) {
+                this.presentation.slides.forEach(slide => {
+                    slide.style = {
+                        ...slide.style,
+                        ...state.styleSettings
+                    };
+                });
+            }
+
             StorageManager.save(StorageManager.KEYS.LAST_PRESENTATION, {
                 presentation: this.presentation,
                 currentIndex: 0
@@ -630,8 +686,8 @@ class App {
         if (presentationMode) {
             presentationMode.style.display = 'flex';
         }
-        document.body.style.overflow = 'hidden';
 
+        document.body.style.overflow = 'hidden';
         this.renderSlides();
         this.updateSlide();
         this.updateProgress();
@@ -650,9 +706,8 @@ class App {
     renderSlides() {
         const container = document.getElementById('slides-container');
         if (!container) return;
-        
-        container.innerHTML = '';
 
+        container.innerHTML = '';
         const state = this.stateManager.getState();
         const animation = state.styleSettings?.slideAnimation || 'fade';
 
@@ -685,7 +740,7 @@ class App {
     updateSlide() {
         const container = document.getElementById('slides-container');
         if (!container) return;
-        
+
         const slideWidth = container.parentElement?.clientWidth || container.clientWidth;
         container.style.transform = `translateX(-${this.currentSlideIndex * slideWidth}px)`;
 
@@ -698,11 +753,10 @@ class App {
     updateProgress() {
         const container = document.getElementById('progress-indicators');
         if (!container || !this.presentation || !this.presentation.slides) return;
-        
-        container.innerHTML = '';
 
+        container.innerHTML = '';
         this.presentation.slides.forEach((_, index) => {
-            const dot = document.createElement('div');
+            const dot = document.createElement('button');
             dot.className = `progress-dot ${index === this.currentSlideIndex ? 'active' : ''}`;
             dot.addEventListener('click', () => {
                 this.currentSlideIndex = index;
@@ -729,12 +783,10 @@ class App {
             const html = ExportHelper.exportToHTML(this.presentation);
             const blob = new Blob([html], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
-            
             const a = document.createElement('a');
             a.href = url;
             a.download = `${this.presentation.title || 'presentation'}.html`;
             a.click();
-            
             URL.revokeObjectURL(url);
             this.showNotification('💾 Презентация сохранена!', 'success');
         } catch (error) {
@@ -770,18 +822,14 @@ class App {
 
     addImageToGrid(imageData, fileName, grid) {
         if (!grid) return;
-        
+
         const item = document.createElement('div');
         item.className = 'image-item';
-        
+
         const img = document.createElement('img');
         img.src = imageData;
         img.alt = fileName;
-        
-        const overlay = document.createElement('div');
-        overlay.className = 'image-overlay';
-        overlay.textContent = fileName;
-        
+
         const removeBtn = document.createElement('button');
         removeBtn.className = 'image-remove';
         removeBtn.textContent = '×';
@@ -793,22 +841,18 @@ class App {
             }
             item.remove();
         });
-        
+
         item.appendChild(img);
-        item.appendChild(overlay);
         item.appendChild(removeBtn);
         
-        // Сохраняем изображение
         this.uploadedImages.push(imageData);
         
-        // Клик по изображению - привязываем к слайду
         const match = fileName.match(/^(\d+)/);
         if (match) {
             const slideIndex = parseInt(match[1]) - 1;
             item.dataset.slideIndex = slideIndex;
-            item.style.cursor = 'pointer';
             item.title = `Кликните чтобы привязать к слайду ${slideIndex + 1}`;
-            
+            item.style.cursor = 'pointer';
             item.addEventListener('click', () => {
                 if (this.presentation && this.presentation.slides[slideIndex]) {
                     this.presentation.slides[slideIndex].image = imageData;
@@ -820,16 +864,15 @@ class App {
                 }
             });
         }
-        
+
         grid.appendChild(item);
     }
 
     updateUI(state) {
-        if (state.uploadedData && state.currentTemplate) {
+        if (state.uploadedData && state.uploadedData.slides && state.currentTemplate) {
             const generateBtn = document.getElementById('generate-btn');
             if (generateBtn) {
-                generateBtn.style.display = 'block';
-                generateBtn.textContent = '🚀 Сгенерировать презентацию';
+                generateBtn.classList.add('visible');
             }
         }
     }
@@ -852,7 +895,6 @@ class App {
     }
 }
 
-// Запуск приложения
 document.addEventListener('DOMContentLoaded', () => {
     const app = new App();
     window.app = app;

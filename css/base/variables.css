@@ -16,7 +16,6 @@
     --text-primary: #FFFFFE;
     --text-secondary: #A7A9BE;
     --text-muted: #6B6D8A;
-    --text-inverse: #0F0E17;
     
     /* Границы */
     --border-color: #2D2B55;
@@ -25,16 +24,17 @@
     /* Эффекты */
     --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     --shadow-hover: 0 12px 48px rgba(108, 99, 255, 0.2);
-    --radius: 16px;
+    --radius: 12px;
     --radius-sm: 8px;
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     
     /* Размеры */
-    --header-height: 64px;
-    --footer-height: 56px;
-    --container-max: 1200px;
+    --header-height: 56px;
+    --footer-height: 48px;
     
     /* Шрифты */
-    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-    --font-mono: 'Courier New', monospace;
+    --font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    --font-heading: 'Playfair Display', serif;
+    --font-accent: 'Space Grotesk', sans-serif;
 }

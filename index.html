@@ -1,91 +1,91 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Presentation-Foundation v3.0 — Конструктор презентаций</title>
-    <link rel="stylesheet" href="css/styles.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
 </head>
-
 <body>
     <div id="app">
         <header id="app-header"></header>
-
         <main id="app-main">
             <!-- Главный экран -->
             <section id="main-screen" class="main-screen">
                 <div class="container">
                     <div class="welcome-section">
                         <h1>✨ Создайте презентацию</h1>
-                        <p class="subtitle">Загрузите данные, настройте стиль и получите профессиональную презентацию
-                        </p>
-
-                        <!-- Вкладки -->
-                        <div class="tabs-container">
-                            <div class="tabs-header">
-                                <button class="tab-btn active" data-tab="upload">📄 Загрузка</button>
-                                <button class="tab-btn" data-tab="input">✏️ Ввод данных</button>
-                                <button class="tab-btn" data-tab="style">🎨 Настройка стиля</button>
+                        <p class="subtitle">Загрузите данные, настройте стиль и получите профессиональную презентацию</p>
+                        
+                        <!-- Компактная панель управления -->
+                        <div class="control-panel">
+                            <!-- Шаблоны -->
+                            <div class="panel-section templates-section">
+                                <div class="section-header">
+                                    <span class="section-icon">🎨</span>
+                                    <h3>Шаблон</h3>
+                                </div>
+                                <div class="templates-grid" id="templates-grid"></div>
                             </div>
 
-                            <div class="tab-content active" id="tab-upload">
-                                <div class="upload-area" id="upload-area">
-                                    <div class="upload-content">
-                                        <span class="upload-icon">📄</span>
-                                        <h3>Загрузите файл</h3>
-                                        <p>Поддерживаются: .txt, .md, .json</p>
-                                        <button class="btn-primary" id="upload-btn">Выбрать файл</button>
-                                        <input type="file" id="file-input" accept=".txt,.md,.json" style="display:none">
+                            <!-- Контент -->
+                            <div class="panel-section content-section">
+                                <div class="section-header">
+                                    <span class="section-icon">📄</span>
+                                    <h3>Контент</h3>
+                                </div>
+                                <div class="content-tabs">
+                                    <button class="content-tab active" data-tab="upload">📤 Загрузить</button>
+                                    <button class="content-tab" data-tab="input">✏️ Ввести</button>
+                                </div>
+                                <div class="content-area">
+                                    <div class="content-panel active" id="panel-upload">
+                                        <div class="upload-area" id="upload-area">
+                                            <span class="upload-icon">📄</span>
+                                            <p>Перетащите файл или <span class="upload-link">выберите</span></p>
+                                            <span class="upload-hint">.txt, .md, .json</span>
+                                            <input type="file" id="file-input" accept=".txt,.md,.json" style="display:none">
+                                            <div class="upload-file-info" id="upload-file-info">
+                                                <span class="file-name"></span>
+                                                <span class="file-size"></span>
+                                                <button class="file-remove">×</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="content-panel" id="panel-input">
+                                        <input type="text" id="presentation-title" placeholder="Название презентации" class="input-field">
+                                        <textarea id="slides-input" rows="3" placeholder="Введите слайды (каждый с новой строки)&#10;Введение&#10;Основная часть&#10;- Пункт 1&#10;- Пункт 2" class="input-field"></textarea>
                                     </div>
                                 </div>
+                                <button id="apply-data-btn" class="btn-primary btn-sm">Применить</button>
                             </div>
 
-                            <div class="tab-content" id="tab-input">
-                                <div class="data-input-container">
-                                    <h3>Введите данные вручную</h3>
-                                    <div class="input-group">
-                                        <label for="presentation-title">Название презентации</label>
-                                        <input type="text" id="presentation-title" placeholder="Введите название"
-                                            class="input-field">
-                                    </div>
-                                    <div class="input-group">
-                                        <label>Слайды (каждый слайд с новой строки)</label>
-                                        <textarea id="slides-input" rows="10" class="input-field"
-                                            placeholder="Введение&#10;Основная часть&#10;- Пункт 1&#10;- Пункт 2&#10;Заключение"></textarea>
-                                    </div>
-                                    <button class="btn-primary" id="apply-data-btn">Применить данные</button>
+                            <!-- Стиль -->
+                            <div class="panel-section style-section">
+                                <div class="section-header">
+                                    <span class="section-icon">🎨</span>
+                                    <h3>Стиль</h3>
                                 </div>
+                                <div id="style-editor-container"></div>
                             </div>
 
-                            <!-- Вкладка стилей -->
-                            <div class="tab-content" id="tab-style">
-                                <div class="style-editor-container" id="style-editor-container">
-                                    <!-- Редактор стилей -->
+                            <!-- Изображения -->
+                            <div class="panel-section images-section">
+                                <div class="section-header">
+                                    <span class="section-icon">🖼️</span>
+                                    <h3>Изображения</h3>
                                 </div>
-
-                                <!-- Загрузка изображений -->
-                                <div class="image-upload-section" id="image-upload-section">
-                                    <h4>🖼️ Изображения для слайдов</h4>
-                                    <p style="color: var(--text-secondary); font-size: 14px; margin-bottom: 12px;">
-                                        Загрузите изображения для слайдов. Название файла должно соответствовать номеру
-                                        слайда (1.jpg, 2.png и т.д.)
-                                    </p>
-                                    <button class="image-upload-btn" id="image-upload-btn">
-                                        📤 Загрузить изображения
-                                    </button>
-                                    <input type="file" id="image-input" accept="image/*" multiple style="display:none">
-                                    <div class="image-grid" id="image-grid"></div>
-                                </div>
+                                <button class="image-upload-btn" id="image-upload-btn">📤 Добавить</button>
+                                <input type="file" id="image-input" accept="image/*" multiple style="display:none">
+                                <div class="image-grid" id="image-grid"></div>
                             </div>
                         </div>
 
-                        <div id="templates-section" class="templates-section">
-                            <h2>Выберите шаблон</h2>
-                            <div class="templates-grid" id="templates-grid"></div>
-                        </div>
-
-                        <button id="generate-btn" class="btn-primary btn-large" style="display:none;">
+                        <button id="generate-btn" class="btn-generate">
                             🚀 Сгенерировать презентацию
                         </button>
                     </div>
@@ -95,45 +95,45 @@
             <!-- Режим презентации -->
             <section id="presentation-mode" class="presentation-mode" style="display:none;">
                 <div class="presentation-container">
-                    <!-- Управление -->
-                    <div class="presentation-controls">
-                        <button id="back-to-main" class="btn-secondary">← Назад</button>
+                    <!-- Минималистичные контролы -->
+                    <div class="presentation-controls" id="presentation-controls">
+                        <button id="back-to-main" class="ctrl-btn" title="Назад">←</button>
+                        <div class="ctrl-divider"></div>
                         <div class="slide-counter">
                             <span id="current-slide-num">1</span>
                             <span> / </span>
                             <span id="total-slides">1</span>
                         </div>
-                        <div class="control-buttons">
-                            <button id="prev-slide" class="btn-icon">◀</button>
-                            <button id="next-slide" class="btn-icon">▶</button>
+                        <div class="ctrl-divider"></div>
+                        <div class="ctrl-group">
+                            <button id="prev-slide" class="ctrl-btn" title="Предыдущий">◀</button>
+                            <button id="next-slide" class="ctrl-btn" title="Следующий">▶</button>
                         </div>
-                        <div class="view-controls">
-                            <button id="zoom-out" class="btn-icon">−</button>
+                        <div class="ctrl-divider"></div>
+                        <div class="ctrl-group">
+                            <button id="zoom-out" class="ctrl-btn" title="Уменьшить">−</button>
                             <span id="zoom-level">100%</span>
-                            <button id="zoom-in" class="btn-icon">+</button>
+                            <button id="zoom-in" class="ctrl-btn" title="Увеличить">+</button>
                         </div>
-                        <button id="export-btn" class="btn-primary">💾 Скачать</button>
+                        <div class="ctrl-divider"></div>
+                        <button id="fullscreen-btn" class="ctrl-btn" title="На весь экран">⛶</button>
+                        <button id="export-btn" class="ctrl-btn primary" title="Скачать">⬇ Скачать</button>
                     </div>
 
-                    <!-- Слайды с зумом -->
+                    <!-- Слайды -->
                     <div class="slides-viewport" id="slides-viewport">
                         <div class="slides-wrapper" id="slides-wrapper">
-                            <div class="slides-container" id="slides-container">
-                                <!-- Слайды будут рендериться здесь -->
-                            </div>
+                            <div class="slides-container" id="slides-container"></div>
                         </div>
                     </div>
 
-                    <!-- Индикаторы прогресса -->
+                    <!-- Прогресс -->
                     <div class="progress-indicators" id="progress-indicators"></div>
                 </div>
             </section>
         </main>
-
         <footer id="app-footer"></footer>
     </div>
-
     <script type="module" src="src/core/App.js"></script>
 </body>
-
 </html>
