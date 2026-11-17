@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Presentation-Foundation v3.0 — Конструктор презентаций</title>
-    <!-- Google Fonts -->
+    <title>Presentation-Foundation v3.1 — Конструктор презентаций и баннеров</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -14,16 +13,44 @@
     <div id="app">
         <header id="app-header"></header>
         <main id="app-main">
-            <!-- Главный экран -->
-            <section id="main-screen" class="main-screen">
+
+            <!-- ============================================= -->
+            <!-- ЭКРАН ВЫБОРА РЕЖИМА                           -->
+            <!-- ============================================= -->
+            <section id="mode-select-screen" class="mode-select-screen">
                 <div class="container">
                     <div class="welcome-section">
-                        <h1>✨ Создайте презентацию</h1>
+                        <h1>✨ Что будем создавать?</h1>
+                        <p class="subtitle">Выберите режим работы</p>
+                        <div class="mode-cards">
+                            <button class="mode-card" data-mode="presentation">
+                                <div class="mode-card-icon">📊</div>
+                                <h3>Презентация</h3>
+                                <p>Многослайдовый документ с шаблонами, стилями и анимациями</p>
+                                <span class="mode-card-cta">Создать →</span>
+                            </button>
+                            <button class="mode-card" data-mode="banner">
+                                <div class="mode-card-icon">🎨</div>
+                                <h3>Баннер</h3>
+                                <p>Одностраничный стилизованный макет с сеткой блоков</p>
+                                <span class="mode-card-cta">Создать →</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================= -->
+            <!-- ЭКРАН ПРЕЗЕНТАЦИИ                             -->
+            <!-- ============================================= -->
+            <section id="main-screen" class="main-screen" style="display:none;">
+                <div class="container">
+                    <div class="welcome-section">
+                        <button class="back-to-modes" id="back-from-presentation">← Назад к выбору</button>
+                        <h1>📊 Создайте презентацию</h1>
                         <p class="subtitle">Загрузите данные, настройте стиль и получите профессиональную презентацию</p>
-                        
-                        <!-- Компактная панель управления -->
+
                         <div class="control-panel">
-                            <!-- Шаблоны -->
                             <div class="panel-section templates-section">
                                 <div class="section-header">
                                     <span class="section-icon">🎨</span>
@@ -32,7 +59,6 @@
                                 <div class="templates-grid" id="templates-grid"></div>
                             </div>
 
-                            <!-- Контент -->
                             <div class="panel-section content-section">
                                 <div class="section-header">
                                     <span class="section-icon">📄</span>
@@ -64,7 +90,6 @@
                                 <button id="apply-data-btn" class="btn-primary btn-sm">Применить</button>
                             </div>
 
-                            <!-- Стиль -->
                             <div class="panel-section style-section">
                                 <div class="section-header">
                                     <span class="section-icon">🎨</span>
@@ -73,7 +98,6 @@
                                 <div id="style-editor-container"></div>
                             </div>
 
-                            <!-- Изображения -->
                             <div class="panel-section images-section">
                                 <div class="section-header">
                                     <span class="section-icon">🖼️</span>
@@ -92,10 +116,78 @@
                 </div>
             </section>
 
-            <!-- Режим презентации -->
+            <!-- ============================================= -->
+            <!-- ЭКРАН КОНСТРУКТОРА БАННЕРА                    -->
+            <!-- ============================================= -->
+            <section id="banner-screen" class="banner-screen" style="display:none;">
+                <div class="container banner-builder-wrap">
+                    <button class="back-to-modes" id="back-from-banner">← Назад к выбору</button>
+                    <h1 class="banner-title">🎨 Конструктор баннера</h1>
+                    <p class="subtitle">Выберите сетку, заполните блоки, настройте фон и стиль</p>
+
+                    <div class="banner-builder-grid">
+                        <aside class="banner-panel">
+                            <div class="banner-panel-section">
+                                <h3>📐 Сетка блоков</h3>
+                                <div class="banner-layouts" id="banner-layouts"></div>
+                            </div>
+
+                            <div class="banner-panel-section">
+                                <h3>🖼️ Фон</h3>
+                                <div class="banner-bg-picker" id="banner-bg-picker"></div>
+                            </div>
+
+                            <div class="banner-panel-section">
+                                <h3>🎨 Акцент</h3>
+                                <div class="banner-color-picker" id="banner-color-picker"></div>
+                            </div>
+
+                            <div class="banner-panel-section">
+                                <h3>📏 Формат</h3>
+                                <select class="style-select" id="banner-format">
+                                    <option value="16:9">16:9 — Широкий</option>
+                                    <option value="4:3">4:3 — Классический</option>
+                                    <option value="1:1">1:1 — Квадрат</option>
+                                    <option value="9:16">9:16 — Вертикальный</option>
+                                </select>
+                            </div>
+
+                            <div class="banner-panel-section">
+                                <h3>✍️ Шрифт</h3>
+                                <select class="style-select" id="banner-font">
+                                    <option value="inter">Inter</option>
+                                    <option value="playfair">Playfair Display</option>
+                                    <option value="space">Space Grotesk</option>
+                                    <option value="jetbrains">JetBrains Mono</option>
+                                </select>
+                            </div>
+
+                            <div class="banner-panel-section">
+                                <h3>✨ Декор</h3>
+                                <div class="banner-decor" id="banner-decor"></div>
+                            </div>
+
+                            <div class="banner-panel-actions">
+                                <button class="btn-primary" id="banner-apply">✓ Применить</button>
+                                <button class="btn-secondary" id="banner-export">⬇ Скачать HTML</button>
+                            </div>
+                        </aside>
+
+                        <div class="banner-preview-wrap">
+                            <div class="banner-preview-stage" id="banner-preview-stage">
+                                <div class="banner-canvas" id="banner-canvas"></div>
+                            </div>
+                            <p class="banner-hint">💡 Кликните на блок, чтобы отредактировать текст</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ============================================= -->
+            <!-- РЕЖИМ ПРЕЗЕНТАЦИИ                             -->
+            <!-- ============================================= -->
             <section id="presentation-mode" class="presentation-mode" style="display:none;">
                 <div class="presentation-container">
-                    <!-- Минималистичные контролы -->
                     <div class="presentation-controls" id="presentation-controls">
                         <button id="back-to-main" class="ctrl-btn" title="Назад">←</button>
                         <div class="ctrl-divider"></div>
@@ -119,18 +211,15 @@
                         <button id="fullscreen-btn" class="ctrl-btn" title="На весь экран">⛶</button>
                         <button id="export-btn" class="ctrl-btn primary" title="Скачать">⬇ Скачать</button>
                     </div>
-
-                    <!-- Слайды -->
                     <div class="slides-viewport" id="slides-viewport">
                         <div class="slides-wrapper" id="slides-wrapper">
                             <div class="slides-container" id="slides-container"></div>
                         </div>
                     </div>
-
-                    <!-- Прогресс -->
                     <div class="progress-indicators" id="progress-indicators"></div>
                 </div>
             </section>
+
         </main>
         <footer id="app-footer"></footer>
     </div>

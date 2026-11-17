@@ -1,0 +1,427 @@
+/* ========================================
+   BANNER.CSS — стили конструктора баннера
+   и экрана выбора режима
+   ======================================== */
+
+/* ===== Экран выбора режима ===== */
+.mode-select-screen {
+    padding: 60px 0;
+    min-height: calc(100vh - 160px);
+    display: flex;
+    align-items: center;
+}
+.mode-select-screen .welcome-section {
+    width: 100%;
+}
+.mode-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+.mode-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 32px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: inherit;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.mode-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-hover);
+}
+.mode-card-icon {
+    font-size: 56px;
+    line-height: 1;
+}
+.mode-card h3 {
+    font-size: 22px;
+    color: var(--text-primary);
+    margin: 0;
+}
+.mode-card p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    flex: 1;
+    margin: 0;
+}
+.mode-card-cta {
+    color: var(--primary-color);
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 8px;
+}
+
+/* ===== Кнопка «назад к выбору» ===== */
+.back-to-modes {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    cursor: pointer;
+    transition: var(--transition);
+    margin-bottom: 12px;
+}
+.back-to-modes:hover {
+    color: var(--text-primary);
+    border-color: var(--primary-color);
+}
+
+/* ===== Экран баннера ===== */
+.banner-screen {
+    padding: 16px 0 24px;
+    min-height: calc(100vh - 120px);
+}
+.banner-builder-wrap {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 140px);
+}
+.banner-title {
+    text-align: center;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-family: var(--font-heading);
+    font-size: 28px;
+}
+.banner-screen .subtitle {
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+.banner-builder-grid {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+}
+
+/* ===== Левая панель ===== */
+.banner-panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    max-height: 100%;
+}
+.banner-panel-section h3 {
+    font-size: 12px;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    font-family: var(--font-accent);
+    font-weight: 600;
+}
+.banner-layouts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+.banner-layout-btn {
+    aspect-ratio: 1;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+}
+.banner-layout-btn:hover {
+    border-color: var(--primary-light);
+}
+.banner-layout-btn.active {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+.banner-layout-mini {
+    display: grid;
+    gap: 2px;
+    width: 100%;
+    height: 100%;
+}
+.banner-layout-mini span {
+    background: var(--text-muted);
+    border-radius: 2px;
+    min-height: 4px;
+}
+.banner-layout-btn.active .banner-layout-mini span {
+    background: var(--primary-color);
+}
+.banner-bg-picker,
+.banner-color-picker,
+.banner-decor {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.banner-bg-swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+.banner-bg-swatch:hover {
+    transform: scale(1.1);
+}
+.banner-bg-swatch.active {
+    border-color: var(--text-primary);
+    box-shadow: 0 0 0 2px var(--primary-color);
+}
+.banner-color-swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.banner-color-swatch:hover {
+    transform: scale(1.15);
+}
+.banner-color-swatch.active {
+    border-color: var(--text-primary);
+    transform: scale(1.1);
+}
+.banner-decor-btn {
+    padding: 4px 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 11px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+.banner-decor-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--primary-light);
+}
+.banner-decor-btn.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+.banner-panel-actions {
+    margin-top: auto;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.banner-panel-actions .btn-primary,
+.banner-panel-actions .btn-secondary {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+
+/* ===== Правая часть: превью ===== */
+.banner-preview-wrap {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.banner-preview-stage {
+    flex: 1;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+}
+.banner-canvas {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: var(--radius);
+    overflow: hidden;
+    display: grid;
+    transition: background 0.3s ease;
+    background-size: cover;
+    background-position: center;
+    /* aspect-ratio задаётся через JS */
+}
+.banner-canvas[data-format="16:9"] { aspect-ratio: 16 / 9; }
+.banner-canvas[data-format="4:3"]  { aspect-ratio: 4 / 3; }
+.banner-canvas[data-format="1:1"]  { aspect-ratio: 1 / 1; max-width: min(100%, 80vh); }
+.banner-canvas[data-format="9:16"] { aspect-ratio: 9 / 16; max-height: 100%; }
+
+.banner-block {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: clamp(8px, 2.5vmin, 28px);
+    color: #fff;
+    overflow: hidden;
+    cursor: pointer;
+    transition: background 0.25s ease, outline 0.2s ease;
+    outline: 0 solid transparent;
+}
+.banner-block:hover {
+    outline: 2px dashed rgba(255,255,255,0.5);
+    outline-offset: -4px;
+}
+.banner-block.editing {
+    outline: 2px solid var(--primary-color);
+    outline-offset: -4px;
+}
+.banner-block-title {
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 0.3em;
+    font-size: clamp(14px, 2.6vmin, 40px);
+    letter-spacing: -0.02em;
+    word-break: break-word;
+    overflow: hidden;
+}
+.banner-block-text {
+    font-size: clamp(10px, 1.6vmin, 20px);
+    line-height: 1.35;
+    opacity: 0.92;
+    word-break: break-word;
+    overflow: hidden;
+}
+.banner-block-input {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: clamp(10px, 1.6vmin, 18px);
+    resize: none;
+    outline: none;
+}
+.banner-block-textarea {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    color: #fff;
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: clamp(9px, 1.4vmin, 16px);
+    resize: none;
+    min-height: 40px;
+    outline: none;
+}
+.banner-hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+/* ===== Декор-эффекты на канвасе ===== */
+.banner-canvas.decor-glow::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.12), transparent 60%);
+    pointer-events: none;
+}
+.banner-canvas.decor-grid::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+}
+.banner-canvas.decor-dots::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.12) 1px, transparent 1px);
+    background-size: 16px 16px;
+    pointer-events: none;
+}
+.banner-canvas.decor-noise::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.15;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    pointer-events: none;
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 1024px) {
+    .banner-builder-grid {
+        grid-template-columns: 220px 1fr;
+    }
+    .banner-layouts {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+@media (max-width: 768px) {
+    .mode-cards {
+        grid-template-columns: 1fr;
+    }
+    .banner-builder-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+    .banner-panel {
+        max-height: 40vh;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .banner-panel-section {
+        flex: 1 1 45%;
+    }
+    .banner-panel-actions {
+        flex: 1 1 100%;
+        flex-direction: row;
+    }
+    .banner-panel-actions button {
+        flex: 1;
+    }
+    .banner-builder-wrap {
+        height: auto;
+    }
+}
+@media (max-width: 480px) {
+    .mode-card-icon { font-size: 42px; }
+    .mode-card h3 { font-size: 18px; }
+    .banner-panel-section {
+        flex: 1 1 100%;
+    }
+}
